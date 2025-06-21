@@ -54,6 +54,45 @@ export default function RepositoryDocsPage() {
     loadRepositoryData()
   }, [repositoryId])
 
+  // Client-side markdown parsing effect
+  useEffect(() => {
+    if (selectedDocument?.content) {
+      const parseMarkdown = async () => {
+        try {
+          // Import marked dynamically
+          const { marked } = await import('marked')
+          
+          // Configure marked options
+          marked.setOptions({
+            breaks: true,
+            gfm: true,
+          })
+
+          // Get the raw markdown content
+          const rawMarkdown = selectedDocument.content
+          
+          // Parse markdown to HTML
+          const html = await marked.parse(rawMarkdown)
+          
+          // Update the content div
+          const contentDiv = document.getElementById('markdown-content')
+          if (contentDiv) {
+            contentDiv.innerHTML = html
+          }
+        } catch (error) {
+          console.error('Error parsing markdown:', error)
+          // Fallback to plain text
+          const contentDiv = document.getElementById('markdown-content')
+          if (contentDiv) {
+            contentDiv.innerHTML = `<pre>${selectedDocument.content}</pre>`
+          }
+        }
+      }
+
+      parseMarkdown()
+    }
+  }, [selectedDocument?.content])
+
   const buildDocumentTree = (documents: Document[]): DocumentNode[] => {
     const tree: DocumentNode[] = []
     const nodeMap = new Map<string, DocumentNode>()
@@ -397,8 +436,14 @@ export default function RepositoryDocsPage() {
             {/* Document Content */}
             <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-950">
               <div className="max-w-4xl mx-auto p-6">
-                <div className="prose prose-gray dark:prose-invert max-w-none">
-                  <div className="whitespace-pre-wrap">{selectedDocument.content}</div>
+                {/* Hidden script tag for raw markdown content */}
+                <script type="text/plain" id="raw-markdown">
+                  {selectedDocument.content}
+                </script>
+                
+                {/* Container for rendered markdown */}
+                <div id="markdown-content" className="markdown-content">
+                  {/* Content will be rendered here by client-side JavaScript */}
                 </div>
               </div>
             </div>

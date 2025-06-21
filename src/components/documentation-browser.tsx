@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -156,6 +156,45 @@ export function DocumentationBrowser({ selectedDocId, onDocumentSelect, onGenera
     }
   }
 
+  // Client-side markdown parsing effect
+  useEffect(() => {
+    if (selectedDocument?.content) {
+      const parseMarkdown = async () => {
+        try {
+          // Import marked dynamically
+          const { marked } = await import('marked')
+          
+          // Configure marked options
+          marked.setOptions({
+            breaks: true,
+            gfm: true,
+          })
+
+          // Get the raw markdown content
+          const rawMarkdown = selectedDocument.content || ''
+          
+          // Parse markdown to HTML
+          const html = await marked.parse(rawMarkdown)
+          
+          // Update the content div
+          const contentDiv = document.getElementById('doc-browser-markdown-content')
+          if (contentDiv) {
+            contentDiv.innerHTML = html
+          }
+        } catch (error) {
+          console.error('Error parsing markdown:', error)
+          // Fallback to plain text
+          const contentDiv = document.getElementById('doc-browser-markdown-content')
+          if (contentDiv) {
+            contentDiv.innerHTML = `<pre>${selectedDocument.content}</pre>`
+          }
+        }
+      }
+
+      parseMarkdown()
+    }
+  }, [selectedDocument?.content])
+
   const handleSearch = (query: string) => {
     setIsSearching(true)
     setSearchQuery(query)
@@ -283,10 +322,14 @@ export function DocumentationBrowser({ selectedDocId, onDocumentSelect, onGenera
           <CardContent>
             {selectedDocument ? (
               <div className="space-y-4">
-                <div className="prose dark:prose-invert max-w-none">
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    {selectedDocument.content}
-                  </p>
+                {/* Hidden script tag for raw markdown content */}
+                <script type="text/plain" id="doc-browser-raw-markdown">
+                  {selectedDocument.content}
+                </script>
+                
+                {/* Container for rendered markdown */}
+                <div id="doc-browser-markdown-content" className="markdown-content text-sm">
+                  {/* Content will be rendered here by client-side JavaScript */}
                 </div>
 
                 {selectedDocument.crossReferences && selectedDocument.crossReferences.length > 0 && (
