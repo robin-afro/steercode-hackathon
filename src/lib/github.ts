@@ -1,4 +1,5 @@
 import { Octokit } from '@octokit/rest'
+import { createIgnoreChecker } from './ignore-patterns'
 
 export class GitHubService {
   private octokit: Octokit
@@ -98,22 +99,21 @@ export class GitHubService {
     try {
       const tree = await this.getRepositoryTree(owner, repo, branch)
       
-      // Filter for code files
-      const codeExtensions = [
-        '.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.cpp', '.c', '.cs',
-        '.php', '.rb', '.go', '.rs', '.kt', '.swift', '.scala', '.clj',
-        '.html', '.css', '.scss', '.sass', '.vue', '.svelte', '.md', '.json',
-        '.yaml', '.yml', '.xml', '.sql', '.sh', '.bash', '.dockerfile'
-      ]
+      // Create ignore checker by reading .gitignore from the repository
+      const ignoreChecker = await createIgnoreChecker(async (path: string) => {
+        try {
+          const fileContent = await this.getFileContent(owner, repo, path)
+          return fileContent.content
+        } catch (error) {
+          return null // File doesn't exist
+        }
+      })
       
+      // Filter out files using ignore patterns
       const codeFiles = tree.filter(item => 
         item.type === 'blob' && 
         item.path && 
-        codeExtensions.some(ext => item.path!.toLowerCase().endsWith(ext)) &&
-        !item.path.includes('node_modules/') &&
-        !item.path.includes('.git/') &&
-        !item.path.includes('dist/') &&
-        !item.path.includes('build/')
+        !ignoreChecker.isIgnored(item.path)
       )
       
       return codeFiles

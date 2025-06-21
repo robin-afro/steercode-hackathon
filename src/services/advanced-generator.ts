@@ -67,10 +67,17 @@ export class AdvancedGenerator {
     let planningTime = 0
     let generationTime = 0
 
+    console.log(`🚀 Starting Advanced Documentation Generation`)
+    console.log(`   Session ID: ${sessionId}`)
+    console.log(`   Repository ID: ${repositoryId}`)
+    console.log(`   Session Type: ${sessionType}`)
+    console.log(`   Started at: ${new Date().toISOString()}`)
+
     try {
       const supabase = await createClient()
 
       // Get repository info
+      console.log(`📋 Loading repository information...`)
       const { data: repository, error: repoError } = await supabase
         .from('repositories')
         .select('*')
@@ -81,23 +88,35 @@ export class AdvancedGenerator {
         throw new Error('Repository not found')
       }
 
+      console.log(`   Repository: ${repository.full_name}`)
+      console.log(`   Language: ${repository.language || 'Mixed'}`)
+      console.log(`   Branch: ${repository.default_branch}`)
+
       // Phase 1: Discovery
+      console.log(`\n🔍 Phase 1: Artifact Discovery`)
       const discoveryStart = Date.now()
       const artifacts = await this.discoverArtifacts(repository, githubToken)
       discoveryTime = Date.now() - discoveryStart
+      console.log(`   ✅ Discovery completed in ${discoveryTime}ms`)
 
       // Phase 2: Component Extraction
+      console.log(`\n🧩 Phase 2: Component Extraction`)
       const extractionStart = Date.now()
       const components = await this.extractComponents(repositoryId, artifacts)
       extractionTime = Date.now() - extractionStart
+      console.log(`   ✅ Extraction completed in ${extractionTime}ms`)
 
       // Phase 3: Planning
+      console.log(`\n📝 Phase 3: Work Planning`)
       const planningStart = Date.now()
       const workPlan = await this.createWorkPlan(repositoryId, components, sessionType)
       await this.savePlanningSession(sessionId, repositoryId, workPlan)
       planningTime = Date.now() - planningStart
+      console.log(`   ✅ Planning completed in ${planningTime}ms`)
+      console.log(`   📄 ${workPlan.items.length} documents planned for generation`)
 
       // Phase 4: Generation
+      console.log(`\n🤖 Phase 4: AI Document Generation`)
       const generationStart = Date.now()
       const generationResults = await this.executeWorkPlan(
         sessionId,
@@ -107,8 +126,10 @@ export class AdvancedGenerator {
         repository
       )
       generationTime = Date.now() - generationStart
+      console.log(`   ✅ Generation completed in ${generationTime}ms`)
 
       // Update repository status
+      console.log(`\n💾 Updating repository status...`)
       await supabase
         .from('repositories')
         .update({
@@ -121,13 +142,26 @@ export class AdvancedGenerator {
       const totalCost = generationResults.reduce((sum, result) => 
         sum + (result.metrics.costEstimated || 0), 0
       )
+      const successfulDocs = generationResults.filter(r => r.success).length
+      const totalLinks = generationResults.reduce((sum, result) => 
+        sum + (result.links?.length || 0), 0
+      )
+
+      console.log(`\n🎉 Generation Complete!`)
+      console.log(`   ✅ ${successfulDocs}/${generationResults.length} documents generated successfully`)
+      console.log(`   🔗 ${totalLinks} cross-references created`)
+      console.log(`   💰 Total cost: $${totalCost.toFixed(4)}`)
+      console.log(`   ⏱️  Total time: ${totalTime}ms`)
+      console.log(`   📊 Breakdown:`)
+      console.log(`      Discovery: ${discoveryTime}ms`)
+      console.log(`      Extraction: ${extractionTime}ms`)
+      console.log(`      Planning: ${planningTime}ms`)
+      console.log(`      Generation: ${generationTime}ms`)
 
       return {
         success: true,
-        documentsGenerated: generationResults.filter(r => r.success).length,
-        linksCreated: generationResults.reduce((sum, result) => 
-          sum + (result.links?.length || 0), 0
-        ),
+        documentsGenerated: successfulDocs,
+        linksCreated: totalLinks,
         totalCost,
         sessionId,
         metrics: {
@@ -142,10 +176,14 @@ export class AdvancedGenerator {
       }
 
     } catch (error) {
+      console.log(`\n❌ Generation Failed!`)
+      console.log(`   Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      
       // Mark session as failed
       await this.markSessionFailed(sessionId, error instanceof Error ? error.message : 'Unknown error')
 
       const totalTime = Date.now() - startTime
+      console.log(`   ⏱️  Failed after: ${totalTime}ms`)
       
       return {
         success: false,
@@ -174,26 +212,34 @@ export class AdvancedGenerator {
     // Get repository structure
     const codeFiles = await github.getCodeFiles(owner, repo, repository.default_branch)
     
-    const artifacts: Artifact[] = []
+    console.log(`📁 Repository Discovery for ${repository.full_name}:`)
+    console.log(`   Total files found: ${codeFiles.length}`)
     
-    for (const file of codeFiles) {
-      const fileContent = await github.getFileContent(owner, repo, file.path!)
-      
-      // Determine language from file extension
+    // The GitHub service already filters using .gitignore, so we just need to map to artifacts
+    console.log(`📋 Files that will be analyzed:`)
+    codeFiles.forEach((file, index) => {
       const ext = file.path!.split('.').pop()?.toLowerCase() || ''
       const language = this.mapExtensionToLanguage(ext)
+      console.log(`   ${index + 1}. ${file.path} (${language})`)
+    })
+    
+    console.log(`   ✅ ${codeFiles.length} files will be processed`)
+
+    const artifacts: Artifact[] = []
+
+    for (const file of codeFiles) {
+      if (!file.path || !file.sha) continue
       
-      // Create content hash for change detection
-      const hash = crypto.createHash('md5').update(fileContent.content).digest('hex')
+      const ext = file.path.split('.').pop()?.toLowerCase() || ''
+      const language = this.mapExtensionToLanguage(ext)
       
       artifacts.push({
-        id: file.path!,
-        path: file.path!,
+        id: `${repository.id}-${file.sha}`,
+        path: file.path,
         language,
-        size: fileContent.size,
-        hash,
-        type: 'file',
-        content: fileContent.content
+        size: file.size || 0,
+        hash: file.sha,
+        type: this.determineArtifactType(file.path)
       })
     }
 
@@ -204,7 +250,9 @@ export class AdvancedGenerator {
     const supabase = await createClient()
     const allComponents: Component[] = []
 
-    // Store artifacts in database
+    console.log(`🧩 Starting component extraction from ${artifacts.length} artifacts...`)
+
+    // Store artifacts in database (this can upsert safely)
     const artifactRecords = artifacts.map(artifact => ({
       repository_id: repositoryId,
       artifact_id: artifact.id,
@@ -217,18 +265,38 @@ export class AdvancedGenerator {
     }))
 
     await supabase.from('artifacts').upsert(artifactRecords)
+    console.log(`   📦 Stored ${artifactRecords.length} artifacts in database`)
 
     // Extract components from each artifact
     for (const artifact of artifacts) {
       const extractor = ComponentExtractorFactory.getExtractor(artifact.language)
       if (extractor) {
+        console.log(`   🔍 Extracting components from ${artifact.path} (${artifact.language})...`)
         const components = await extractor.extractComponents(artifact)
         allComponents.push(...components)
+        console.log(`      Found ${components.length} components: ${components.map(c => `${c.name}(${c.type})`).join(', ')}`)
+      } else {
+        console.log(`   ⏭️  No extractor available for ${artifact.language} (${artifact.path})`)
       }
     }
 
-    // Store components in database
+    console.log(`🎯 Total components extracted: ${allComponents.length}`)
+
+    // Delete existing components for this repository to ensure clean overwrite
     if (allComponents.length > 0) {
+      console.log(`   🗑️  Clearing existing components for repository...`)
+      const { error: deleteError } = await supabase
+        .from('components')
+        .delete()
+        .eq('repository_id', repositoryId)
+
+      if (deleteError) {
+        console.error('Error deleting existing components:', deleteError)
+      } else {
+        console.log(`   ✅ Existing components cleared`)
+      }
+
+      // Insert new components (fresh insert, not upsert)
       const componentRecords = allComponents.map(component => ({
         repository_id: repositoryId,
         component_id: component.id,
@@ -241,7 +309,14 @@ export class AdvancedGenerator {
         metadata: component.metadata
       }))
 
-      await supabase.from('components').upsert(componentRecords)
+      console.log(`   💾 Inserting ${componentRecords.length} new components...`)
+      const { error: insertError } = await supabase.from('components').insert(componentRecords)
+      
+      if (insertError) {
+        console.error('Error inserting components:', insertError)
+      } else {
+        console.log(`   ✅ Successfully stored ${componentRecords.length} components`)
+      }
     }
 
     return allComponents
@@ -252,7 +327,15 @@ export class AdvancedGenerator {
     components: Component[],
     sessionType: 'full' | 'incremental'
   ): Promise<WorkPlan> {
-    return await this.planner.createWorkPlan(repositoryId, components, sessionType)
+    console.log(`   📋 Creating work plan for ${components.length} components...`)
+    const workPlan = await this.planner.createWorkPlan(repositoryId, components, sessionType)
+    
+    console.log(`   📄 Planned documents:`)
+    workPlan.items.forEach((item, index) => {
+      console.log(`      ${index + 1}. ${item.docPath} (${item.documentType}) - ${item.componentIds.length} components`)
+    })
+    
+    return workPlan
   }
 
   private async savePlanningSession(
@@ -284,6 +367,8 @@ export class AdvancedGenerator {
     const results: GenerationResult[] = []
     const supabase = await createClient()
 
+    console.log(`📝 Starting document generation for ${workPlan.items.length} planned documents...`)
+
     // Update session status
     await this.updateSessionProgress(sessionId, 0, workPlan.items.length)
 
@@ -291,15 +376,34 @@ export class AdvancedGenerator {
       const workItem = workPlan.items[i]
       
       try {
+        console.log(`   📄 Generating document ${i + 1}/${workPlan.items.length}: ${workItem.docPath}`)
+        
+        // Check if document already exists
+        const { data: existingDoc } = await supabase
+          .from('documents')
+          .select('id, title')
+          .eq('repository_id', repositoryId)
+          .eq('document_path', workItem.docPath)
+          .single()
+
+        if (existingDoc) {
+          console.log(`      🔄 Document exists, will overwrite: "${existingDoc.title}"`)
+        } else {
+          console.log(`      ✨ Creating new document`)
+        }
+
         // Get components for this work item
         const itemComponents = allComponents.filter(component =>
           workItem.componentIds.includes(component.id)
         )
 
+        console.log(`      🧩 Using ${itemComponents.length} components: ${itemComponents.map(c => c.name).join(', ')}`)
+
         let result: GenerationResult
 
         if (workItem.documentType === 'overview') {
           // Generate overview document
+          console.log(`      🌐 Generating overview document...`)
           result = await this.docGenerator.generateOverviewDocument(
             repository,
             allComponents.length,
@@ -307,6 +411,7 @@ export class AdvancedGenerator {
           )
         } else {
           // Generate regular document
+          console.log(`      🤖 Generating ${workItem.documentType} document...`)
           result = await this.docGenerator.generateDocument(
             repositoryId,
             workItem,
@@ -316,7 +421,18 @@ export class AdvancedGenerator {
         }
 
         if (result.success && result.document) {
-          // Save document to database
+          console.log(`      ✅ AI generation successful (${result.metrics.tokensOutput} tokens, $${result.metrics.costEstimated?.toFixed(4) || '0.0000'})`)
+          
+          // Delete existing document if it exists (for clean overwrite)
+          if (existingDoc) {
+            console.log(`      🗑️  Removing existing document...`)
+            await supabase
+              .from('documents')
+              .delete()
+              .eq('id', existingDoc.id)
+          }
+
+          // Save new document to database
           const { data: savedDoc, error: saveError } = await supabase
             .from('documents')
             .insert({
@@ -330,15 +446,18 @@ export class AdvancedGenerator {
               metadata: {
                 ...workItem.metadata,
                 generated_at: new Date().toISOString(),
-                session_id: sessionId
+                session_id: sessionId,
+                overwritten: !!existingDoc
               }
             })
             .select()
             .single()
 
           if (saveError) {
-            console.error('Error saving document:', saveError)
+            console.error(`      ❌ Error saving document:`, saveError)
           } else if (savedDoc) {
+            console.log(`      💾 Document saved successfully: "${savedDoc.title}"`)
+            
             // Save generation metrics
             await this.docGenerator.saveGenerationMetrics(
               repositoryId,
@@ -348,9 +467,12 @@ export class AdvancedGenerator {
 
             // Save document links
             if (result.links && result.links.length > 0) {
+              console.log(`      🔗 Creating ${result.links.length} document links...`)
               await this.saveDocumentLinks(savedDoc.id, result.links, repositoryId)
             }
           }
+        } else {
+          console.log(`      ❌ AI generation failed: ${result.error}`)
         }
 
         results.push(result)
@@ -359,7 +481,7 @@ export class AdvancedGenerator {
         await this.updateSessionProgress(sessionId, i + 1, workPlan.items.length, workItem.docPath)
 
       } catch (error) {
-        console.error(`Error generating document for ${workItem.docPath}:`, error)
+        console.error(`❌ Error generating document for ${workItem.docPath}:`, error)
         results.push({
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -371,6 +493,14 @@ export class AdvancedGenerator {
           }
         })
       }
+    }
+
+    console.log(`📚 Document generation complete!`)
+    const successfulDocs = results.filter(r => r.success).length
+    const failedDocs = results.filter(r => !r.success).length
+    console.log(`   ✅ ${successfulDocs} documents generated successfully`)
+    if (failedDocs > 0) {
+      console.log(`   ❌ ${failedDocs} documents failed to generate`)
     }
 
     // Mark session as completed
@@ -453,13 +583,45 @@ export class AdvancedGenerator {
     return crypto.randomUUID()
   }
 
+  private determineArtifactType(filePath: string): string {
+    if (filePath.includes('test') || filePath.includes('spec')) {
+      return 'test'
+    }
+    if (filePath.includes('config') || filePath.includes('setup')) {
+      return 'config'
+    }
+    if (filePath.includes('README') || filePath.includes('doc')) {
+      return 'documentation'
+    }
+    return 'source'
+  }
+
   private mapExtensionToLanguage(ext: string): string {
-    const mapping: Record<string, string> = {
-      'ts': 'typescript',
-      'tsx': 'typescript',
+    const languageMap: Record<string, string> = {
+      // JavaScript/TypeScript
       'js': 'javascript',
       'jsx': 'javascript',
+      'ts': 'typescript',
+      'tsx': 'typescript',
+      'mjs': 'javascript',
+      'cjs': 'javascript',
+      
+      // Python
       'py': 'python',
+      'pyx': 'python',
+      'pyi': 'python',
+      
+      // Web technologies
+      'html': 'html',
+      'htm': 'html',
+      'css': 'css',
+      'scss': 'scss',
+      'sass': 'sass',
+      'less': 'less',
+      'vue': 'vue',
+      'svelte': 'svelte',
+      
+      // Other languages
       'java': 'java',
       'cpp': 'cpp',
       'c': 'c',
@@ -467,10 +629,53 @@ export class AdvancedGenerator {
       'php': 'php',
       'rb': 'ruby',
       'go': 'go',
-      'rs': 'rust'
+      'rs': 'rust',
+      'swift': 'swift',
+      'kt': 'kotlin',
+      'scala': 'scala',
+      'clj': 'clojure',
+      'elm': 'elm',
+      
+      // Data/Config
+      'json': 'json',
+      'yaml': 'yaml',
+      'yml': 'yaml',
+      'xml': 'xml',
+      'toml': 'toml',
+      'ini': 'ini',
+      'env': 'env',
+      
+      // Documentation
+      'md': 'markdown',
+      'mdx': 'markdown',
+      'rst': 'rst',
+      'txt': 'text',
+      
+      // Shell/Scripts
+      'sh': 'shell',
+      'bash': 'shell',
+      'zsh': 'shell',
+      'fish': 'shell',
+      'ps1': 'powershell',
+      'bat': 'batch',
+      'cmd': 'batch',
+      
+      // Database
+      'sql': 'sql',
+      
+      // Docker
+      'dockerfile': 'dockerfile',
+      
+      // Other
+      'r': 'r',
+      'matlab': 'matlab',
+      'm': 'matlab'
     }
-    return mapping[ext] || 'unknown'
+
+    return languageMap[ext] || 'text'
   }
+
+
 
   // Utility methods for checking generation status
   async getSessionStatus(sessionId: string): Promise<GenerationSession | null> {
