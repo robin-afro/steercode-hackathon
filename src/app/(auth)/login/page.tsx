@@ -14,13 +14,14 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
-        scopes: 'read:user user:email repo read:org'
+        redirectTo: `${window.location.origin}/auth/callback`,
+        scopes: 'read:user user:email read:org'
       }
     })
 
     if (error) {
       console.error('Error logging in with GitHub:', error)
+      alert(`Authentication error: ${error.message}`)
     }
   }
 
