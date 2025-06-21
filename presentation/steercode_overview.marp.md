@@ -1,8 +1,7 @@
 ---
 marp: true
-theme: default
+class: invert
 paginate: true
-_class: lead
 ---
 
 # Lookas
