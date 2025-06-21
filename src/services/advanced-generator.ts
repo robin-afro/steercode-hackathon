@@ -115,7 +115,7 @@ export class AdvancedGenerator {
       // Phase 2: Component Extraction
       logger.log(`\n🧩 Phase 2: Component Extraction`)
       const extractionStart = Date.now()
-      const components = await this.extractComponents(repositoryId, artifacts, logger)
+      const components = await this.extractComponents(repositoryId, artifacts, githubToken, logger)
       extractionTime = Date.now() - extractionStart
       logger.log(`   ✅ Extraction completed in ${extractionTime}ms`)
 
@@ -260,7 +260,7 @@ export class AdvancedGenerator {
     return artifacts
   }
 
-  private async extractComponents(repositoryId: string, artifacts: Artifact[], logger: Logger): Promise<Component[]> {
+  private async extractComponents(repositoryId: string, artifacts: Artifact[], githubToken: string, logger: Logger): Promise<Component[]> {
     const supabase = await createClient()
     const allComponents: Component[] = []
 
@@ -281,14 +281,48 @@ export class AdvancedGenerator {
     await supabase.from('artifacts').upsert(artifactRecords)
     logger.log(`   📦 Stored ${artifactRecords.length} artifacts in database`)
 
+    // Get repository details
+    const { data: repoData } = await supabase
+      .from('repositories')
+      .select('full_name')
+      .eq('id', repositoryId)
+      .single()
+
+    if (!repoData) {
+      throw new Error('Repository not found')
+    }
+
+    const [owner, repo] = repoData.full_name.split('/')
+    const github = new GitHubService(githubToken)
+
     // Extract components from each artifact
     for (const artifact of artifacts) {
       const extractor = ComponentExtractorFactory.getExtractor(artifact.language)
       if (extractor) {
         logger.log(`   🔍 Extracting components from ${artifact.path} (${artifact.language})...`)
-        const components = await extractor.extractComponents(artifact)
-        allComponents.push(...components)
-        logger.log(`      Found ${components.length} components: ${components.map(c => `${c.name}(${c.type})`).join(', ')}`)
+        
+        try {
+          // Fetch file content from GitHub
+          logger.log(`      📄 Fetching content for ${artifact.path}...`)
+          const fileData = await github.getFileContent(owner, repo, artifact.path)
+          
+          if (fileData && fileData.content) {
+            // Add content to artifact
+            const artifactWithContent: Artifact = {
+              ...artifact,
+              content: fileData.content
+            }
+            
+            logger.log(`      ✅ Content loaded (${fileData.content.length} chars)`)
+            const components = await extractor.extractComponents(artifactWithContent)
+            allComponents.push(...components)
+            logger.log(`      Found ${components.length} components: ${components.map(c => `${c.name}(${c.type})`).join(', ')}`)
+          } else {
+            logger.log(`      ⚠️  No content available for ${artifact.path}`)
+          }
+        } catch (error) {
+          logger.log(`      ❌ Error fetching content for ${artifact.path}: ${error}`)
+        }
       } else {
         logger.log(`   ⏭️  No extractor available for ${artifact.language} (${artifact.path})`)
       }
@@ -635,6 +669,7 @@ export class AdvancedGenerator {
       'py': 'python',
       'pyx': 'python',
       'pyi': 'python',
+      'pyw': 'python',
       
       // Web technologies
       'html': 'html',

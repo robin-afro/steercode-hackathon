@@ -568,23 +568,25 @@ export class PythonExtractor extends ComponentExtractor {
       // Find decorators for this class
       const decorators = this.findDecoratorsBeforeLine(content, match.index)
       
+      const endLine = this.findClassEndLine(content, match.index, indentation.length)
+      
       components.push({
         id: this.generateComponentId(className, 'class', filePath),
         name: className,
         type: 'class',
         parentPath: filePath,
         startLine,
-        endLine: this.findClassEndLine(content, match.index, indentation.length),
+        endLine,
         relations,
         metadata: {
           parentClasses: parentClasses?.split(',').map(s => s.trim()).filter(Boolean),
           decorators,
           indentationLevel: indentation.length
         }
-              })
-      }
-      
-      return components
+      })
+    }
+    
+    return components
   }
   
   private extractFunctions(content: string, filePath: string, lines: string[]): Component[] {
@@ -606,13 +608,15 @@ export class PythonExtractor extends ComponentExtractor {
       
       const componentType = isMethod ? 'function' : 'function'
       
+      const endLine = this.findFunctionEndLine(content, match.index, indentation.length)
+      
       components.push({
         id: this.generateComponentId(functionName, componentType, filePath),
         name: functionName,
         type: componentType,
         parentPath: filePath,
         startLine,
-        endLine: this.findFunctionEndLine(content, match.index, indentation.length),
+        endLine,
         relations: this.findFunctionCalls(content, match.index),
         metadata: {
           isMethod,

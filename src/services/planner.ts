@@ -60,14 +60,24 @@ interface ComponentGroup {
 export class Planner {
   private readonly strategies: Map<string, PlanningStrategy> = new Map([
     ['default', {
-      name: 'Default Strategy',
+      name: 'File-based Strategy',
       maxComponentsPerDoc: 10,
       maxTokensPerDoc: 3000,
       groupingRules: [
-        { type: 'namespace', weight: 0.4, parameters: { maxDepth: 3 } },
-        { type: 'file', weight: 0.3, parameters: { mergeSmallFiles: true } },
+        { type: 'file', weight: 0.6, parameters: { mergeSmallFiles: true } },
         { type: 'component_type', weight: 0.2, parameters: { separateByType: true } },
-        { type: 'size', weight: 0.1, parameters: { minComponentsPerDoc: 2 } }
+        { type: 'size', weight: 0.2, parameters: { minComponentsPerDoc: 2 } }
+      ]
+    }],
+    ['component-based', {
+      name: 'Component-based Strategy',
+      maxComponentsPerDoc: 8,
+      maxTokensPerDoc: 3500,
+      groupingRules: [
+        { type: 'component_type', weight: 0.4, parameters: { separateClasses: true, separateServices: true } },
+        { type: 'namespace', weight: 0.3, parameters: { groupRelated: true } },
+        { type: 'complexity', weight: 0.2, parameters: { separateComplex: true } },
+        { type: 'size', weight: 0.1, parameters: { minComponentsPerDoc: 1 } }
       ]
     }]
   ])
@@ -76,9 +86,9 @@ export class Planner {
     repositoryId: string,
     components: Component[],
     sessionType: 'full' | 'incremental' = 'full',
-    strategyName: string = 'default'
+    strategyName: string = 'component-based'  // Changed default to component-based
   ): Promise<WorkPlan> {
-    const strategy = this.strategies.get(strategyName) || this.strategies.get('default')!
+    const strategy = this.strategies.get(strategyName) || this.strategies.get('component-based')!
     
     // Group components according to strategy
     const groupedComponents = await this.groupComponents(components, strategy)
@@ -134,7 +144,117 @@ export class Planner {
     components: Component[],
     strategy: PlanningStrategy
   ): Promise<ComponentGroup[]> {
-    // Group components by file path initially
+    // Check if this is component-based strategy
+    if (strategy.name === 'Component-based Strategy') {
+      return this.groupComponentsLogically(components, strategy)
+    }
+    
+    // Fall back to file-based grouping for other strategies
+    return this.groupComponentsByFile(components, strategy)
+  }
+
+  private async groupComponentsLogically(
+    components: Component[],
+    strategy: PlanningStrategy
+  ): Promise<ComponentGroup[]> {
+    const groups: ComponentGroup[] = []
+    const processedComponents = new Set<string>()
+
+    // 1. Create separate documents for major classes
+    const classes = components.filter(c => c.type === 'class' && !processedComponents.has(c.id))
+    for (const classComponent of classes) {
+      // Find related components (methods, nested classes, etc.)
+      const relatedComponents = this.findRelatedComponents(classComponent, components)
+      
+      const docPath = this.generateLogicalDocPath(classComponent)
+      const title = this.generateComponentTitle(classComponent)
+      
+      groups.push({
+        id: classComponent.id,
+        docPath,
+        title,
+        components: [classComponent, ...relatedComponents],
+        documentType: 'class',
+        metadata: {
+          primaryComponent: classComponent.name,
+          componentType: classComponent.type,
+          groupingRule: 'class-based',
+          sourceFile: classComponent.parentPath
+        }
+      })
+
+      // Mark components as processed
+      processedComponents.add(classComponent.id)
+      relatedComponents.forEach(c => processedComponents.add(c.id))
+    }
+
+    // 2. Create documents for services and major standalone functions
+    const services = components.filter(c => 
+      (c.type === 'function' && this.isServiceFunction(c)) && 
+      !processedComponents.has(c.id)
+    )
+    
+    for (const service of services) {
+      const relatedComponents = this.findRelatedComponents(service, components)
+      
+      const docPath = this.generateLogicalDocPath(service)
+      const title = this.generateComponentTitle(service)
+      
+      groups.push({
+        id: service.id,
+        docPath,
+        title,
+        components: [service, ...relatedComponents],
+        documentType: 'service',
+        metadata: {
+          primaryComponent: service.name,
+          componentType: service.type,
+          groupingRule: 'service-based',
+          sourceFile: service.parentPath
+        }
+      })
+
+      processedComponents.add(service.id)
+      relatedComponents.forEach(c => processedComponents.add(c.id))
+    }
+
+    // 3. Group remaining components by file/module with logical naming
+    const remainingComponents = components.filter(c => !processedComponents.has(c.id))
+    const fileGroups = this.groupRemainingComponentsByFile(remainingComponents)
+    
+    for (const [filePath, fileComponents] of fileGroups) {
+      if (fileComponents.length === 0) continue
+      
+      // Use the most significant component for naming
+      const primaryComponent = this.findPrimaryComponent(fileComponents)
+      const docPath = primaryComponent 
+        ? this.generateLogicalDocPath(primaryComponent, filePath)
+        : filePath.replace(/\//g, '.').replace(/\.[^.]+$/, '')
+      const title = this.generateModuleTitle(fileComponents, filePath)
+      
+      groups.push({
+        id: filePath,
+        docPath,
+        title,
+        components: fileComponents,
+        documentType: this.inferDocumentType(fileComponents),
+        metadata: {
+          primaryComponent: primaryComponent?.name,
+          groupingRule: 'module-based',
+          sourceFile: filePath,
+          componentTypes: [...new Set(fileComponents.map(c => c.type))]
+        }
+      })
+    }
+
+    return groups
+  }
+
+  private groupComponentsByFile(
+    components: Component[],
+    strategy: PlanningStrategy
+  ): Promise<ComponentGroup[]> {
+    // Original file-based grouping logic
     const fileMap = new Map<string, Component[]>()
     
     for (const component of components) {
@@ -160,7 +280,183 @@ export class Planner {
       })
     }
 
-    return groups
+    return Promise.resolve(groups)
+  }
+
+  private findRelatedComponents(primaryComponent: Component, allComponents: Component[]): Component[] {
+    const related: Component[] = []
+    
+    // Find components in the same file that might be related
+    const sameFileComponents = allComponents.filter(c => 
+      c.parentPath === primaryComponent.parentPath && 
+      c.id !== primaryComponent.id
+    )
+
+    for (const component of sameFileComponents) {
+      // Include methods that are likely part of this class (based on indentation or naming)
+      if (component.type === 'function' && 
+          component.metadata?.indentationLevel > 0 && 
+          this.isComponentRelated(primaryComponent, component)) {
+        related.push(component)
+      }
+      
+      // Include constants/variables that might be related
+      if (component.type === 'constant' && 
+          this.isComponentRelated(primaryComponent, component)) {
+        related.push(component)
+      }
+    }
+
+    return related
+  }
+
+  private isComponentRelated(primary: Component, candidate: Component): boolean {
+    // Check if components are related based on naming patterns, indentation, etc.
+    const primaryName = primary.name.toLowerCase()
+    const candidateName = candidate.name.toLowerCase()
+    
+    // Same naming prefix
+    if (candidateName.includes(primaryName) || primaryName.includes(candidateName)) {
+      return true
+    }
+    
+    // For Python: check if method is indented (likely belongs to class)
+    if (primary.type === 'class' && candidate.type === 'function') {
+      const primaryLine = primary.startLine || 0
+      const candidateLine = candidate.startLine || 0
+      const candidateIndent = candidate.metadata?.indentationLevel || 0
+      
+      // If function comes after class and is indented, it's likely a method
+      if (candidateLine > primaryLine && candidateIndent > 0) {
+        return true
+      }
+    }
+    
+    return false
+  }
+
+  private isServiceFunction(component: Component): boolean {
+    // Identify service-like functions based on naming patterns and complexity
+    const name = component.name.toLowerCase()
+    const servicePatterns = [
+      'service', 'manager', 'handler', 'controller', 'client', 'api', 'generator', 
+      'processor', 'validator', 'helper', 'utils', 'factory', 'builder'
+    ]
+    
+    // Check if name contains service patterns
+    if (servicePatterns.some(pattern => name.includes(pattern))) {
+      return true
+    }
+    
+    // Check if it's a substantial function (not a simple utility)
+    const hasMultipleRelations = (component.relations?.length || 0) >= 3
+    const isExported = component.metadata?.isExported || false
+    const isLargeFunction = ((component.endLine || 0) - (component.startLine || 0)) > 10
+    
+    return (hasMultipleRelations || isLargeFunction) && isExported
+  }
+
+  private groupRemainingComponentsByFile(components: Component[]): Map<string, Component[]> {
+    const fileMap = new Map<string, Component[]>()
+    
+    for (const component of components) {
+      if (!fileMap.has(component.parentPath)) {
+        fileMap.set(component.parentPath, [])
+      }
+      fileMap.get(component.parentPath)!.push(component)
+    }
+    
+    return fileMap
+  }
+
+  private findPrimaryComponent(components: Component[]): Component | null {
+    // Find the most significant component for naming purposes
+    
+    // Prefer classes
+    const classes = components.filter(c => c.type === 'class')
+    if (classes.length > 0) {
+      return classes[0]
+    }
+    
+    // Then services/major functions
+    const services = components.filter(c => c.type === 'function' && this.isServiceFunction(c))
+    if (services.length > 0) {
+      return services[0]
+    }
+    
+    // Then exported functions
+    const exported = components.filter(c => c.metadata?.isExported)
+    if (exported.length > 0) {
+      return exported[0]
+    }
+    
+    // Finally, just the first component
+    return components[0] || null
+  }
+
+  private generateLogicalDocPath(component: Component, fallbackPath?: string): string {
+    // Generate document path based on component name rather than file path
+    let baseName = component.name
+    
+    // Remove special characters and convert to doc path format
+    baseName = baseName.replace(/^[@_]+|[@_]+$/g, '') // Remove leading/trailing @ and _
+    baseName = baseName.replace(/[^a-zA-Z0-9]/g, '_') // Replace special chars with _
+    baseName = baseName.toLowerCase()
+    
+    // If it's too short or generic, use file context
+    if (baseName.length < 3 || ['main', 'app', 'index', 'init'].includes(baseName)) {
+      if (fallbackPath) {
+        const fileName = fallbackPath.split('/').pop()?.replace(/\.[^.]+$/, '') || 'module'
+        return `${fileName}_${baseName}`
+      }
+    }
+    
+    return baseName
+  }
+
+  private generateComponentTitle(component: Component): string {
+    // Generate human-readable title based on component
+    const name = component.name.replace(/^[@_]+|[@_]+$/g, '') // Remove decorators and underscores
+    const type = component.type.charAt(0).toUpperCase() + component.type.slice(1)
+    
+    // Convert camelCase/snake_case to Title Case
+    const titleName = name
+      .replace(/([A-Z])/g, ' $1') // Add space before uppercase
+      .replace(/[_-]/g, ' ') // Replace underscores and hyphens with spaces
+      .replace(/\s+/g, ' ') // Normalize multiple spaces
+      .trim()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ')
+    
+    return `${titleName} ${type}`
+  }
+
+  private generateModuleTitle(components: Component[], filePath: string): string {
+    // Generate title for module-based documents
+    const fileName = filePath.split('/').pop()?.replace(/\.[^.]+$/, '') || 'Module'
+    
+    // Check if there's a dominant component type
+    const types = components.map(c => c.type)
+    const typeCounts = types.reduce((acc, type) => {
+      acc[type] = (acc[type] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+    
+    const dominantType = Object.entries(typeCounts)
+      .sort(([,a], [,b]) => b - a)[0]?.[0]
+    
+    const titleName = fileName
+      .split(/[-_.]/)
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ')
+    
+    if (dominantType && dominantType !== 'function') {
+      const typeLabel = dominantType.charAt(0).toUpperCase() + dominantType.slice(1)
+      return `${titleName} ${typeLabel}s`
+    }
+    
+    return `${titleName} Module`
   }
 
   private async createWorkPlanItem(
