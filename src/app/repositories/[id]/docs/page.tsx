@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/theme-toggle'
+import { RepositorySidebar } from '@/components/repository-sidebar'
 import { ArrowLeft, Book, File, Folder, Home, Settings, Search, ChevronRight, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -42,6 +42,7 @@ interface DocumentNode {
 export default function RepositoryDocsPage() {
   const params = useParams()
   const repositoryId = params.id as string
+  const [user, setUser] = useState<any>(null)
   const [repository, setRepository] = useState<Repository | null>(null)
   const [documents, setDocuments] = useState<Document[]>([])
   const [documentTree, setDocumentTree] = useState<DocumentNode[]>([])
@@ -183,6 +184,8 @@ export default function RepositoryDocsPage() {
         return
       }
 
+      setUser(user)
+
       // Fetch repository details
       const { data: repo, error: repoError } = await supabase
         .from('repositories')
@@ -245,70 +248,6 @@ export default function RepositoryDocsPage() {
     }
   }
 
-  const filteredDocuments = documents.filter(doc => 
-    searchQuery === '' || 
-    doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doc.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doc.document_path.toLowerCase().includes(searchQuery.toLowerCase())
-  )
-
-  const renderTreeNode = (node: DocumentNode, level = 0): React.ReactNode => {
-    const isDocument = node.type === 'document'
-    const hasChildren = node.children.length > 0
-    const isSelected = selectedDocument?.id === node.document?.id
-    
-    // Filter out nodes that don't match search if searching
-    if (searchQuery && isDocument) {
-      const matchesSearch = filteredDocuments.some(doc => doc.id === node.document?.id)
-      if (!matchesSearch) return null
-    }
-
-    return (
-      <div key={node.path}>
-        <button
-          onClick={() => {
-            if (isDocument && node.document) {
-              setSelectedDocument(node.document)
-            } else if (hasChildren) {
-              toggleNodeExpansion(node.path)
-            }
-          }}
-          className="w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-2"
-          style={{ 
-            paddingLeft: `${level * 16 + 12}px`,
-            ...(isSelected
-              ? { backgroundColor: 'var(--color-primary)', color: 'white' }
-              : { color: 'var(--color-text-primary)' }
-            )
-          }}
-        >
-          {hasChildren && (
-            node.expanded ? (
-              <ChevronDown className="h-3 w-3 flex-shrink-0" />
-            ) : (
-              <ChevronRight className="h-3 w-3 flex-shrink-0" />
-            )
-          )}
-          {!hasChildren && <div className="w-3" />}
-          
-          {isDocument ? (
-            getDocumentIcon(node.document?.document_type || 'file')
-          ) : (
-            <Folder className="h-4 w-4" />
-          )}
-          
-          <span className="truncate">{node.name}</span>
-        </button>
-        
-        {hasChildren && node.expanded && (
-          <div>
-            {node.children.map(child => renderTreeNode(child, level + 1))}
-          </div>
-        )}
-      </div>
-    )
-  }
-
   if (loading) {
     return (
       <div className="flex h-screen" style={{ backgroundColor: 'var(--color-canvas)' }}>
@@ -348,110 +287,17 @@ export default function RepositoryDocsPage() {
   return (
     <div className="flex h-screen" style={{ backgroundColor: 'var(--color-canvas)' }}>
       {/* Sidebar */}
-      <aside className="w-64 border-r" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-        <div className="flex h-full flex-col">
-          {/* Header */}
-          <div className="border-b p-4" style={{ borderColor: 'var(--color-border)' }}>
-            <Link href="/">
-              <h1 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Lookas</h1>
-            </Link>
-            <div className="mt-2">
-              <Link href="/" className="text-sm hover:text-gray-700 flex items-center gap-1" style={{ color: 'var(--color-text-secondary)' }}>
-                <ArrowLeft className="h-3 w-3" />
-                Back to Dashboard
-              </Link>
-            </div>
-          </div>
-
-          {/* Repository Info */}
-          <div className="border-b p-4" style={{ borderColor: 'var(--color-border)' }}>
-            <h2 className="font-semibold text-lg" style={{ color: 'var(--color-text-primary)' }}>{repository?.name}</h2>
-            <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>{repository?.description || 'No description'}</p>
-            {repository?.github_url && (
-              <a 
-                href={repository.github_url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-sm mt-2 inline-block"
-                style={{ color: 'var(--color-primary)' }}
-              >
-                View on GitHub →
-              </a>
-            )}
-          </div>
-
-          {/* Search */}
-          <div className="border-b p-4" style={{ borderColor: 'var(--color-border)' }}>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4" style={{ color: 'var(--color-text-muted)' }} />
-              <input
-                type="text"
-                placeholder="Search documentation..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent"
-                style={{ 
-                  borderColor: 'var(--color-border)', 
-                  backgroundColor: 'var(--color-canvas)', 
-                  color: 'var(--color-text-primary)',
-                  '--tw-ring-color': 'var(--color-primary)'
-                } as React.CSSProperties}
-              />
-            </div>
-          </div>
-
-          {/* Document Navigation */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Documentation</h3>
-                <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{documents.length} docs</span>
-              </div>
-              <div className="space-y-1">
-                {searchQuery ? (
-                  // Show flat list when searching
-                  filteredDocuments.map((doc) => (
-                    <button
-                      key={doc.id}
-                      onClick={() => setSelectedDocument(doc)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2`}
-                      style={selectedDocument?.id === doc.id 
-                        ? { backgroundColor: 'var(--color-primary)', color: 'white' }
-                        : { color: 'var(--color-text-primary)' }
-                      }
-                    >
-                      {getDocumentIcon(doc.document_type)}
-                      <span className="truncate">{doc.title}</span>
-                    </button>
-                  ))
-                ) : (
-                  // Show tree structure when not searching
-                  documentTree.map(node => renderTreeNode(node))
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Navigation Links */}
-          <div className="border-t p-4" style={{ borderColor: 'var(--color-border)' }}>
-            <div className="space-y-1 mb-4">
-              <Link href="/" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-gray-100 dark:hover:bg-gray-800" style={{ color: 'var(--color-text-primary)' }}>
-                <Home className="h-4 w-4" />
-                Dashboard
-              </Link>
-              <Link href="/settings" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-gray-100 dark:hover:bg-gray-800" style={{ color: 'var(--color-text-primary)' }}>
-                <Settings className="h-4 w-4" />
-                Settings
-              </Link>
-            </div>
-            
-            <div className="flex items-center justify-between pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
-              <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Theme</span>
-              <ThemeToggle />
-            </div>
-          </div>
-        </div>
-      </aside>
+      <RepositorySidebar
+        user={user}
+        repository={repository || undefined}
+        documents={documents}
+        documentTree={documentTree}
+        selectedDocument={selectedDocument || undefined}
+        searchQuery={searchQuery}
+        onDocumentSelect={setSelectedDocument}
+        onSearchChange={setSearchQuery}
+        onNodeToggle={toggleNodeExpansion}
+      />
 
       {/* Main Content */}
       <main className="flex-1 overflow-hidden">
