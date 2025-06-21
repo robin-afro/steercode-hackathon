@@ -70,6 +70,7 @@ export class AdvancedGenerator {
     repositoryId: string,
     githubToken: string,
     sessionType: 'full' | 'incremental' = 'full',
+    pruneOutdated: boolean = true,
     logger: Logger = defaultLogger
   ): Promise<AdvancedGenerationResult> {
     const startTime = Date.now()
@@ -137,6 +138,7 @@ export class AdvancedGenerator {
         workPlan,
         components,
         repository,
+        pruneOutdated,
         logger
       )
       generationTime = Date.now() - generationStart
@@ -412,12 +414,20 @@ export class AdvancedGenerator {
     workPlan: WorkPlan,
     allComponents: Component[],
     repository: any,
+    pruneOutdated: boolean,
     logger: Logger
   ): Promise<GenerationResult[]> {
     const results: GenerationResult[] = []
     const supabase = await createClient()
 
     logger.log(`📝 Starting document generation for ${workPlan.items.length} planned documents...`)
+
+    // Prune outdated documents before generating new ones (if enabled)
+    if (pruneOutdated) {
+      await this.pruneOutdatedDocuments(repositoryId, workPlan, logger)
+    } else {
+      logger.log(`   ⏭️  Skipping document pruning (disabled)`)
+    }
 
     // Update session status
     await this.updateSessionProgress(sessionId, 0, workPlan.items.length)
@@ -563,6 +573,89 @@ export class AdvancedGenerator {
       .eq('id', sessionId)
 
     return results
+  }
+
+  private async pruneOutdatedDocuments(
+    repositoryId: string,
+    workPlan: WorkPlan,
+    logger: Logger
+  ): Promise<void> {
+    const supabase = await createClient()
+    
+    try {
+      logger.log(`🧹 Pruning outdated documents...`)
+      
+      // Get all existing documents for this repository
+      const { data: existingDocs, error: fetchError } = await supabase
+        .from('documents')
+        .select('id, document_path, title, document_type')
+        .eq('repository_id', repositoryId)
+      
+      if (fetchError) {
+        logger.log(`   ⚠️  Error fetching existing documents: ${fetchError.message}`)
+        return
+      }
+      
+      if (!existingDocs || existingDocs.length === 0) {
+        logger.log(`   ✅ No existing documents to prune`)
+        return
+      }
+      
+      // Get the set of document paths that will be generated/updated
+      const plannedDocPaths = new Set(workPlan.items.map(item => item.docPath))
+      
+      // Find documents that are no longer in the work plan
+      const outdatedDocs = existingDocs.filter(doc => !plannedDocPaths.has(doc.document_path))
+      
+      if (outdatedDocs.length === 0) {
+        logger.log(`   ✅ No outdated documents found`)
+        return
+      }
+      
+      logger.log(`   🗑️  Found ${outdatedDocs.length} outdated documents to remove:`)
+      outdatedDocs.forEach(doc => {
+        logger.log(`      - ${doc.document_path} ("${doc.title}")`)
+      })
+      
+      // Delete outdated documents and their associated data
+      const outdatedDocIds = outdatedDocs.map(doc => doc.id)
+      
+      // Delete document links first (foreign key constraints)
+      const { error: linksError } = await supabase
+        .from('document_links')
+        .delete()
+        .or(`source_document_id.in.(${outdatedDocIds.join(',')}),target_document_id.in.(${outdatedDocIds.join(',')})`)
+      
+      if (linksError) {
+        logger.log(`   ⚠️  Warning: Error deleting document links: ${linksError.message}`)
+      }
+      
+      // Delete generation metrics
+      const { error: metricsError } = await supabase
+        .from('generation_metrics')
+        .delete()
+        .in('document_id', outdatedDocIds)
+      
+      if (metricsError) {
+        logger.log(`   ⚠️  Warning: Error deleting generation metrics: ${metricsError.message}`)
+      }
+      
+      // Finally, delete the documents themselves
+      const { error: deleteError } = await supabase
+        .from('documents')
+        .delete()
+        .in('id', outdatedDocIds)
+      
+      if (deleteError) {
+        logger.log(`   ❌ Error deleting outdated documents: ${deleteError.message}`)
+        return
+      }
+      
+      logger.log(`   ✅ Successfully pruned ${outdatedDocs.length} outdated documents`)
+      
+    } catch (error) {
+      logger.log(`   ❌ Error during document pruning: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   private async saveDocumentLinks(

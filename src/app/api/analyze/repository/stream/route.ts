@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server'
 import { AdvancedGenerator, Logger } from '@/services/advanced-generator'
 
 export async function POST(request: NextRequest) {
-  const { repositoryId } = await request.json()
+  const { repositoryId, pruneOutdated = true } = await request.json()
 
   if (!repositoryId) {
     return new Response('Repository ID is required', { status: 400 })
@@ -86,6 +86,7 @@ export async function POST(request: NextRequest) {
             repositoryId,
             provider_token,
             'full',
+            pruneOutdated,
             streamLogger
           )
 
