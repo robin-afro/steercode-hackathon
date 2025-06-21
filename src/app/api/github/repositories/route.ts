@@ -18,8 +18,8 @@ export async function GET() {
       return NextResponse.json({ error: 'No GitHub access token found' }, { status: 401 })
     }
 
-    // Fetch repositories from GitHub API
-    const response = await fetch('https://api.github.com/user/repos?sort=updated&per_page=100', {
+    // Fetch repositories from GitHub API with visibility=all to include private repos
+    const response = await fetch('https://api.github.com/user/repos?visibility=all&sort=updated&per_page=100', {
       headers: {
         'Authorization': `token ${provider_token}`,
         'Accept': 'application/vnd.github.v3+json',
@@ -30,6 +30,15 @@ export async function GET() {
     if (!response.ok) {
       const error = await response.text()
       console.error('GitHub API error:', error)
+      
+      // Check if it's a scope issue
+      if (response.status === 403) {
+        return NextResponse.json({ 
+          error: 'Insufficient GitHub permissions. Please re-authenticate to grant access to private repositories.',
+          code: 'INSUFFICIENT_SCOPE'
+        }, { status: 403 })
+      }
+      
       return NextResponse.json({ error: 'Failed to fetch repositories from GitHub' }, { status: response.status })
     }
 
@@ -55,7 +64,7 @@ export async function GET() {
     return NextResponse.json({ repositories: formattedRepos })
 
   } catch (error) {
-    console.error('Error fetching GitHub repositories:', error)
+    console.error('Error fetching repositories:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

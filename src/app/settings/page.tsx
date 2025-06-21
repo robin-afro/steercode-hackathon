@@ -55,10 +55,19 @@ export default function SettingsPage() {
         const data = await response.json()
         setAvailableRepos(data.repositories || [])
       } else {
+        const errorData = await response.json()
         console.error('Failed to load repositories from GitHub')
+        
+        // Handle scope issues specifically
+        if (errorData.code === 'INSUFFICIENT_SCOPE') {
+          alert('Your GitHub authentication doesn\'t include access to private repositories. Please sign out and sign back in to grant the required permissions.')
+        } else {
+          alert(`Error: ${errorData.error || 'Failed to load repositories'}`)
+        }
       }
     } catch (error) {
       console.error('Error loading GitHub repositories:', error)
+      alert('Error loading repositories. Please try again.')
     }
     setLoadingGithub(false)
   }

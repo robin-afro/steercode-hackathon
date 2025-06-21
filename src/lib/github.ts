@@ -18,7 +18,12 @@ export class GitHubService {
         path
       })
       return data
-    } catch (error) {
+    } catch (error: any) {
+      if (error.status === 404) {
+        throw new Error(`Repository ${owner}/${repo} not found or not accessible. This may be a private repository that requires additional permissions.`)
+      } else if (error.status === 403) {
+        throw new Error(`Access denied to ${owner}/${repo}. Your GitHub token may lack the required 'repo' scope for private repositories.`)
+      }
       console.error('Error getting repository contents:', error)
       throw error
     }
@@ -64,7 +69,12 @@ export class GitHubService {
         recursive: 'true'
       })
       return data.tree
-    } catch (error) {
+    } catch (error: any) {
+      if (error.status === 404) {
+        throw new Error(`Repository ${owner}/${repo} or branch '${branch}' not found. This may be a private repository that requires additional permissions.`)
+      } else if (error.status === 403) {
+        throw new Error(`Access denied to ${owner}/${repo}. Your GitHub token may lack the required 'repo' scope for private repositories.`)
+      }
       console.error('Error getting repository tree:', error)
       throw error
     }
