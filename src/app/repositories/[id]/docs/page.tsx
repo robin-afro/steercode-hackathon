@@ -101,6 +101,20 @@ export default function RepositoryDocsPage() {
     }
   }, [selectedDocument?.content])
 
+  // Smooth scroll to top when document changes
+  useEffect(() => {
+    if (selectedDocument) {
+      // Find the main content area and scroll it to top smoothly
+      const mainContent = document.querySelector('main .overflow-y-auto')
+      if (mainContent) {
+        mainContent.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        })
+      }
+    }
+  }, [selectedDocument?.id])
+
   const buildDocumentTree = (documents: Document[]): DocumentNode[] => {
     const tree: DocumentNode[] = []
     const nodeMap = new Map<string, DocumentNode>()
