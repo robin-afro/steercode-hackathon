@@ -1,103 +1,214 @@
-import Image from "next/image";
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { GitPullRequest, GitBranch, Users, AlertCircle, Plus, Home, Settings, LogOut, BarChart } from 'lucide-react'
+import Link from 'next/link'
 
-export default function Home() {
+export default async function HomePage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect('/login')
+  }
+
+  // Fetch user's organizations and repositories
+  const { data: userOrgs } = await supabase
+    .from('user_organizations')
+    .select('organization_id, organizations(*)')
+    .eq('user_id', user.id)
+
+  const hasOrganizations = userOrgs && userOrgs.length > 0
+
+  const navItems = [
+    { href: '/', icon: Home, label: 'Dashboard' },
+    { href: '/repositories', icon: GitBranch, label: 'Repositories' },
+    { href: '/pull-requests', icon: GitPullRequest, label: 'Pull Requests' },
+    { href: '/contributors', icon: Users, label: 'Contributors' },
+    { href: '/analytics', icon: BarChart, label: 'Analytics' },
+    { href: '/settings', icon: Settings, label: 'Settings' },
+  ]
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Sidebar */}
+      <aside className="w-64 border-r border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
+        <div className="flex h-full flex-col">
+          <div className="flex h-16 items-center justify-center border-b border-gray-200 dark:border-gray-800">
+            <h1 className="text-2xl font-bold">Lookas</h1>
+          </div>
+          
+          <nav className="flex-1 space-y-1 p-4">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-50"
+              >
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </Link>
+            ))}
+          </nav>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          <div className="border-t border-gray-200 p-4 dark:border-gray-800">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-700" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate dark:text-gray-50">
+                  {user.email}
+                </p>
+              </div>
+            </div>
+            <form action="/api/auth/logout" method="post">
+              <Button variant="outline" size="sm" className="w-full" type="submit">
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign out
+              </Button>
+            </form>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="p-8">
+          {!hasOrganizations ? (
+            <>
+              <div className="mb-8">
+                <h1 className="text-3xl font-bold tracking-tight">Welcome to Lookas</h1>
+                <p className="text-gray-500 dark:text-gray-400 mt-2">
+                  Let's get started by connecting your GitHub organizations
+                </p>
+              </div>
+
+              <Card className="max-w-2xl">
+                <CardHeader>
+                  <CardTitle>Connect Your GitHub Organizations</CardTitle>
+                  <CardDescription>
+                    Import your repositories to start tracking metrics and getting AI-powered insights
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Link href="/settings">
+                    <Button size="lg">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Connect Organizations
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <>
+              <div className="mb-8">
+                <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+                <p className="text-gray-500 dark:text-gray-400 mt-2">
+                  Monitor your repository activity and team performance
+                </p>
+              </div>
+
+              {/* Metrics Grid */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Open Pull Requests</CardTitle>
+                    <GitPullRequest className="h-4 w-4 text-gray-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">12</div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Across all repositories
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Stale PRs</CardTitle>
+                    <AlertCircle className="h-4 w-4 text-red-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">3</div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Open for more than 7 days
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Active Contributors</CardTitle>
+                    <Users className="h-4 w-4 text-gray-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">8</div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      In the last 30 days
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Open Issues</CardTitle>
+                    <GitBranch className="h-4 w-4 text-gray-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">24</div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Needs attention
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* AI Suggestions */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <Card className="lg:col-span-2">
+                  <CardHeader>
+                    <CardTitle>Recent Activity</CardTitle>
+                    <CardDescription>
+                      Latest updates from your repositories
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Activity timeline will be displayed here
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>AI Suggestions</CardTitle>
+                    <CardDescription>
+                      Powered by Mistral AI
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="rounded-lg border p-3">
+                        <p className="text-sm font-medium">Review PR #123</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          This PR has been open for 14 days without review
+                        </p>
+                      </div>
+                      <div className="rounded-lg border p-3">
+                        <p className="text-sm font-medium">Assign Issue #456</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          High-priority issue needs an assignee
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          )}
         </div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
-  );
+  )
 }
