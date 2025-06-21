@@ -10,17 +10,10 @@ export interface ButtonProps
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'default', size = 'default', ...props }, ref) => {
     const variants = {
-      default: 'text-white hover:opacity-90',
-      outline: 'border bg-transparent hover:opacity-90',
-      ghost: 'hover:opacity-90',
-      destructive: 'text-white hover:opacity-90',
-    }
-
-    const variantStyles = {
-      default: { backgroundColor: 'var(--color-primary)' },
-      outline: { borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' },
-      ghost: { color: 'var(--color-text-primary)' },
-      destructive: { backgroundColor: 'var(--color-destructive)' },
+      default: 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-200',
+      outline: 'border border-gray-300 bg-transparent hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800',
+      ghost: 'hover:bg-gray-100 dark:hover:bg-gray-800',
+      destructive: 'bg-red-600 text-white hover:bg-red-700 dark:bg-red-900 dark:hover:bg-red-800',
     }
 
     const sizes = {
@@ -33,15 +26,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         className={cn(
-          'inline-flex items-center justify-center text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+          'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:focus-visible:ring-gray-300',
           variants[variant],
           sizes[size],
           className
         )}
-        style={{
-          borderRadius: 'var(--radius-md)',
-          ...variantStyles[variant],
-        }}
         ref={ref}
         {...props}
       />

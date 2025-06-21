@@ -95,10 +95,12 @@ export interface Database {
           document_path: string
           title: string
           content: string
-          document_type: 'file' | 'class' | 'function' | 'module' | 'overview'
+          document_type: 'file' | 'class' | 'function' | 'module' | 'overview' | 'system' | 'workflow' | 'component' | 'service'
           file_path: string | null
           line_start: number | null
           line_end: number | null
+          summary: string | null
+          component_ids: Json | null
           metadata: Json
           created_at: string
           updated_at: string
@@ -109,10 +111,12 @@ export interface Database {
           document_path: string
           title: string
           content: string
-          document_type: 'file' | 'class' | 'function' | 'module' | 'overview'
+          document_type: 'file' | 'class' | 'function' | 'module' | 'overview' | 'system' | 'workflow' | 'component' | 'service'
           file_path?: string | null
           line_start?: number | null
           line_end?: number | null
+          summary?: string | null
+          component_ids?: Json | null
           metadata?: Json
           created_at?: string
           updated_at?: string
@@ -123,10 +127,12 @@ export interface Database {
           document_path?: string
           title?: string
           content?: string
-          document_type?: 'file' | 'class' | 'function' | 'module' | 'overview'
+          document_type?: 'file' | 'class' | 'function' | 'module' | 'overview' | 'system' | 'workflow' | 'component' | 'service'
           file_path?: string | null
           line_start?: number | null
           line_end?: number | null
+          summary?: string | null
+          component_ids?: Json | null
           metadata?: Json
           created_at?: string
           updated_at?: string
@@ -137,21 +143,202 @@ export interface Database {
           id: string
           source_document_id: string
           target_document_id: string
-          link_type: 'imports' | 'uses' | 'extends' | 'implements' | 'calls' | 'references'
+          link_type: 'imports' | 'uses' | 'extends' | 'implements' | 'calls' | 'references' | 'depends_on' | 'composes' | 'exposes' | 'tests'
           created_at: string
         }
         Insert: {
           id?: string
           source_document_id: string
           target_document_id: string
-          link_type: 'imports' | 'uses' | 'extends' | 'implements' | 'calls' | 'references'
+          link_type: 'imports' | 'uses' | 'extends' | 'implements' | 'calls' | 'references' | 'depends_on' | 'composes' | 'exposes' | 'tests'
           created_at?: string
         }
         Update: {
           id?: string
           source_document_id?: string
           target_document_id?: string
-          link_type?: 'imports' | 'uses' | 'extends' | 'implements' | 'calls' | 'references'
+          link_type?: 'imports' | 'uses' | 'extends' | 'implements' | 'calls' | 'references' | 'depends_on' | 'composes' | 'exposes' | 'tests'
+          created_at?: string
+        }
+      }
+      artifacts: {
+        Row: {
+          id: string
+          repository_id: string
+          artifact_id: string
+          path: string
+          language: string | null
+          size: number | null
+          hash: string | null
+          artifact_type: string
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          repository_id: string
+          artifact_id: string
+          path: string
+          language?: string | null
+          size?: number | null
+          hash?: string | null
+          artifact_type: string
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          repository_id?: string
+          artifact_id?: string
+          path?: string
+          language?: string | null
+          size?: number | null
+          hash?: string | null
+          artifact_type?: string
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      components: {
+        Row: {
+          id: string
+          repository_id: string
+          component_id: string
+          name: string
+          component_type: string
+          parent_path: string | null
+          start_line: number | null
+          end_line: number | null
+          relations: Json
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          repository_id: string
+          component_id: string
+          name: string
+          component_type: string
+          parent_path?: string | null
+          start_line?: number | null
+          end_line?: number | null
+          relations?: Json
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          repository_id?: string
+          component_id?: string
+          name?: string
+          component_type?: string
+          parent_path?: string | null
+          start_line?: number | null
+          end_line?: number | null
+          relations?: Json
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      planning_sessions: {
+        Row: {
+          id: string
+          repository_id: string
+          session_type: 'full' | 'incremental'
+          status: 'planning' | 'generating' | 'completed' | 'failed'
+          work_plan: Json | null
+          started_at: string
+          completed_at: string | null
+          error_message: string | null
+          metadata: Json
+        }
+        Insert: {
+          id?: string
+          repository_id: string
+          session_type?: 'full' | 'incremental'
+          status?: 'planning' | 'generating' | 'completed' | 'failed'
+          work_plan?: Json | null
+          started_at?: string
+          completed_at?: string | null
+          error_message?: string | null
+          metadata?: Json
+        }
+        Update: {
+          id?: string
+          repository_id?: string
+          session_type?: 'full' | 'incremental'
+          status?: 'planning' | 'generating' | 'completed' | 'failed'
+          work_plan?: Json | null
+          started_at?: string
+          completed_at?: string | null
+          error_message?: string | null
+          metadata?: Json
+        }
+      }
+      context_cache: {
+        Row: {
+          id: string
+          repository_id: string
+          cache_key: string
+          context_data: Json
+          expires_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          repository_id: string
+          cache_key: string
+          context_data: Json
+          expires_at: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          repository_id?: string
+          cache_key?: string
+          context_data?: Json
+          expires_at?: string
+          created_at?: string
+        }
+      }
+      generation_metrics: {
+        Row: {
+          id: string
+          repository_id: string
+          document_id: string
+          model_used: string
+          tokens_input: number
+          tokens_output: number
+          cost_estimated: number | null
+          generation_time_ms: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          repository_id: string
+          document_id: string
+          model_used: string
+          tokens_input: number
+          tokens_output: number
+          cost_estimated?: number | null
+          generation_time_ms?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          repository_id?: string
+          document_id?: string
+          model_used?: string
+          tokens_input?: number
+          tokens_output?: number
+          cost_estimated?: number | null
+          generation_time_ms?: number | null
           created_at?: string
         }
       }

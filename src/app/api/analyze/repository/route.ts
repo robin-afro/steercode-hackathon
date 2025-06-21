@@ -1,11 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import { GitHubService } from '@/lib/github'
 import { NextResponse } from 'next/server'
-import { Mistral } from '@mistralai/mistralai'
-
-const mistral = new Mistral({
-  apiKey: process.env.MISTRAL_API_KEY!,
-})
+import { AdvancedGenerator } from '@/services/advanced-generator'
 
 export async function POST(request: Request) {
   try {
@@ -63,160 +58,83 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to create analysis log' }, { status: 500 })
     }
 
-    // Initialize GitHub service with OAuth token
-    const github = new GitHubService(provider_token)
-    const [owner, repo] = repository.full_name.split('/')
+    // Use the new Advanced Generator
+    const generator = new AdvancedGenerator()
+    
+    console.log(`Starting advanced analysis for repository: ${repository.full_name}`)
+    
+    const result = await generator.generateDocumentation(
+      repositoryId,
+      provider_token,
+      'full'
+    )
 
-    let documents: any[] = []
-    let filesAnalyzed = 0
+    // Update analysis log with results
+    await supabase
+      .from('analysis_logs')
+      .update({
+        status: result.success ? 'completed' : 'failed',
+        completed_at: new Date().toISOString(),
+        files_analyzed: result.metrics.artifactsDiscovered,
+        documents_generated: result.documentsGenerated,
+        error_message: result.error || null
+      })
+      .eq('id', analysisLog.id)
 
-    try {
-      // Get repository structure and code files
-      const codeFiles = await github.getCodeFiles(owner, repo, repository.default_branch)
-      console.log(`Found ${codeFiles.length} code files in ${repository.full_name}`)
+    if (result.success) {
+      console.log(`✅ Advanced analysis completed successfully:`)
+      console.log(`- Documents Generated: ${result.documentsGenerated}`)
+      console.log(`- Links Created: ${result.linksCreated}`)
+      console.log(`- Components Extracted: ${result.metrics.componentsExtracted}`)
+      console.log(`- Total Cost: $${result.totalCost.toFixed(4)}`)
+      console.log(`- Total Time: ${result.metrics.totalTimeMs}ms`)
 
-      // Create overview document
-      documents.push({
-        repository_id: repositoryId,
-        document_path: 'overview',
-        title: `${repository.name} - Project Overview`,
-        content: `# ${repository.name}\n\n${repository.description || 'No description available'}\n\nRepository: ${repository.full_name}\nLanguage: ${repository.language || 'Mixed'}\nFiles analyzed: ${codeFiles.length}\n\nThis repository contains ${codeFiles.length} code files across various directories.`,
-        document_type: 'overview' as const,
-        file_path: null,
-        metadata: { 
-          repository_name: repository.name,
-          analyzed_at: new Date().toISOString(),
-          total_files: codeFiles.length
+      return NextResponse.json({
+        success: true,
+        message: 'Advanced documentation generation completed',
+        documentsGenerated: result.documentsGenerated,
+        linksCreated: result.linksCreated,
+        sessionId: result.sessionId,
+        metrics: {
+          documentsGenerated: result.documentsGenerated,
+          componentsExtracted: result.metrics.componentsExtracted,
+          artifactsDiscovered: result.metrics.artifactsDiscovered,
+          totalCost: result.totalCost,
+          totalTimeMs: result.metrics.totalTimeMs,
+          breakdown: {
+            discoveryTimeMs: result.metrics.discoveryTimeMs,
+            extractionTimeMs: result.metrics.extractionTimeMs,
+            planningTimeMs: result.metrics.planningTimeMs,
+            generationTimeMs: result.metrics.generationTimeMs
+          }
         }
       })
-
-      // Process a subset of files to avoid overwhelming the system
-      const filesToProcess = codeFiles.slice(0, 10) // Limit to first 10 files
+    } else {
+      console.error(`❌ Advanced analysis failed:`, result.error)
       
-      for (const file of filesToProcess) {
-        try {
-          const fileContent = await github.getFileContent(owner, repo, file.path!)
-          
-          // Generate documentation for this file
-          const documentPath = file.path!
-            .replace(/\//g, '.')
-            .replace(/\.[^.]+$/, '') // Remove file extension
-          
-          // Use AI to analyze the file content
-          const prompt = `Analyze this code file and create comprehensive documentation:
-
-File: ${file.path}
-Content:
-${fileContent.content}
-
-Create documentation that includes:
-1. Purpose and overview of the file
-2. Key functions, classes, or components
-3. Dependencies and imports
-4. Usage examples if applicable
-5. Any important implementation details
-
-Keep the documentation clear and developer-friendly.`
-
-          const response = await mistral.chat.complete({
-            model: 'mistral-large-latest',
-            messages: [{ role: 'user', content: prompt }]
-          })
-
-          const aiContent = response.choices?.[0]?.message?.content || 'Documentation generation failed'
-
-          documents.push({
-            repository_id: repositoryId,
-            document_path: documentPath,
-            title: `${file.path}`,
-            content: aiContent,
-            document_type: 'file' as const,
-            file_path: file.path!,
-            metadata: { 
-              size: fileContent.size,
-              sha: fileContent.sha,
-              language: file.path!.split('.').pop() || 'unknown'
-            }
-          })
-
-          filesAnalyzed++
-          
-        } catch (fileError) {
-          console.error(`Error processing file ${file.path}:`, fileError)
-          // Continue processing other files
-        }
-      }
-
-      console.log(`Successfully processed ${filesAnalyzed} files`)
-
-    } catch (githubError) {
-      console.error('Error accessing GitHub repository:', githubError)
-      
-             // Fall back to mock documentation if GitHub access fails
-       documents = [{
-         repository_id: repositoryId,
-         document_path: 'overview',
-         title: `${repository.name} - Project Overview`,
-         content: `# ${repository.name}\n\n${repository.description || 'No description available'}\n\nNote: Limited access to repository contents. Basic documentation generated from available metadata.`,
-         document_type: 'overview' as const,
-         file_path: null,
-         metadata: { 
-           repository_name: repository.name,
-           analyzed_at: new Date().toISOString(),
-           access_limited: true
-         }
-       }]
-       
-       filesAnalyzed = 1
-     }
-
-    // Store documents
-    const { error: docsError } = await supabase
-      .from('documents')
-      .insert(documents)
-
-    if (docsError) {
-      console.error('Error storing documents:', docsError)
+      return NextResponse.json({
+        success: false,
+        error: result.error || 'Documentation generation failed',
+        sessionId: result.sessionId,
+        metrics: result.metrics
+      }, { status: 500 })
     }
 
-    // Update repository and analysis status
-    await Promise.all([
-      supabase
-        .from('repositories')
-        .update({ 
-          analysis_status: 'completed',
-          last_analyzed_at: new Date().toISOString()
-        })
-        .eq('id', repositoryId),
-      
-      supabase
-        .from('analysis_logs')
-        .update({
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-          files_analyzed: filesAnalyzed,
-          documents_generated: documents.length
-        })
-        .eq('id', analysisLog.id)
-    ])
-
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Repository analysis completed',
-      documents_generated: documents.length
-    })
-
   } catch (error) {
-    console.error('Error in repository analysis:', error)
+    console.error('Error in advanced repository analysis:', error)
     
     // Update status to failed if we have repository ID
-    const { repositoryId } = await request.json().catch(() => ({}))
-    if (repositoryId) {
-      const supabase = await createClient()
-      await supabase
-        .from('repositories')
-        .update({ analysis_status: 'failed' })
-        .eq('id', repositoryId)
+    try {
+      const { repositoryId } = await request.json().catch(() => ({}))
+      if (repositoryId) {
+        const supabase = await createClient()
+        await supabase
+          .from('repositories')
+          .update({ analysis_status: 'failed' })
+          .eq('id', repositoryId)
+      }
+    } catch (updateError) {
+      console.error('Error updating repository status:', updateError)
     }
     
     return NextResponse.json(
