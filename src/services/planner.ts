@@ -166,7 +166,7 @@ export class Planner {
       // Find related components (methods, nested classes, etc.)
       const relatedComponents = this.findRelatedComponents(classComponent, components)
       
-      const docPath = this.generateLogicalDocPath(classComponent)
+      const docPath = this.generateHierarchicalDocPath(classComponent, 'classes')
       const title = this.generateComponentTitle(classComponent)
       
       groups.push({
@@ -179,7 +179,8 @@ export class Planner {
           primaryComponent: classComponent.name,
           componentType: classComponent.type,
           groupingRule: 'class-based',
-          sourceFile: classComponent.parentPath
+          sourceFile: classComponent.parentPath,
+          logicalCategory: 'classes'
         }
       })
 
@@ -197,7 +198,7 @@ export class Planner {
     for (const service of services) {
       const relatedComponents = this.findRelatedComponents(service, components)
       
-      const docPath = this.generateLogicalDocPath(service)
+      const docPath = this.generateHierarchicalDocPath(service, 'services')
       const title = this.generateComponentTitle(service)
       
       groups.push({
@@ -210,7 +211,8 @@ export class Planner {
           primaryComponent: service.name,
           componentType: service.type,
           groupingRule: 'service-based',
-          sourceFile: service.parentPath
+          sourceFile: service.parentPath,
+          logicalCategory: 'services'
         }
       })
 
@@ -218,18 +220,52 @@ export class Planner {
       relatedComponents.forEach(c => processedComponents.add(c.id))
     }
 
-    // 3. Group remaining components by file/module with logical naming
+    // 3. Group configuration and constants
+    const configComponents = components.filter(c => 
+      (c.type === 'constant' || this.isConfigurationComponent(c)) && 
+      !processedComponents.has(c.id)
+    )
+    
+    if (configComponents.length > 0) {
+      // Group config components by file or create individual docs for major configs
+      const configGroups = this.groupConfigurationComponents(configComponents)
+      
+      for (const [groupKey, groupComponents] of configGroups) {
+        const primaryComponent = this.findPrimaryComponent(groupComponents)
+        const docPath = this.generateHierarchicalDocPath(primaryComponent, 'configuration', groupKey)
+        const title = this.generateConfigurationTitle(groupComponents, groupKey)
+        
+        groups.push({
+          id: groupKey,
+          docPath,
+          title,
+          components: groupComponents,
+          documentType: 'module',
+          metadata: {
+            primaryComponent: primaryComponent?.name,
+            groupingRule: 'configuration-based',
+            sourceFile: groupComponents[0]?.parentPath,
+            logicalCategory: 'configuration'
+          }
+        })
+
+        groupComponents.forEach(c => processedComponents.add(c.id))
+      }
+    }
+
+    // 4. Group remaining components by file/module with logical naming
     const remainingComponents = components.filter(c => !processedComponents.has(c.id))
     const fileGroups = this.groupRemainingComponentsByFile(remainingComponents)
     
     for (const [filePath, fileComponents] of fileGroups) {
       if (fileComponents.length === 0) continue
       
+      // Determine the logical category for this module
+      const logicalCategory = this.determineModuleCategory(fileComponents, filePath)
+      
       // Use the most significant component for naming
       const primaryComponent = this.findPrimaryComponent(fileComponents)
-      const docPath = primaryComponent 
-        ? this.generateLogicalDocPath(primaryComponent, filePath)
-        : filePath.replace(/\//g, '.').replace(/\.[^.]+$/, '')
+      const docPath = this.generateHierarchicalDocPath(primaryComponent, logicalCategory, filePath)
       const title = this.generateModuleTitle(fileComponents, filePath)
       
       groups.push({
@@ -242,6 +278,7 @@ export class Planner {
           primaryComponent: primaryComponent?.name,
           groupingRule: 'module-based',
           sourceFile: filePath,
+          logicalCategory,
           componentTypes: [...new Set(fileComponents.map(c => c.type))]
         }
       })
@@ -394,24 +431,32 @@ export class Planner {
     return components[0] || null
   }
 
-  private generateLogicalDocPath(component: Component, fallbackPath?: string): string {
-    // Generate document path based on component name rather than file path
-    let baseName = component.name
+  private generateHierarchicalDocPath(component: Component | null, category: string, fallbackKey?: string): string {
+    let baseName: string
     
-    // Remove special characters and convert to doc path format
-    baseName = baseName.replace(/^[@_]+|[@_]+$/g, '') // Remove leading/trailing @ and _
-    baseName = baseName.replace(/[^a-zA-Z0-9]/g, '_') // Replace special chars with _
-    baseName = baseName.toLowerCase()
+    if (component) {
+      baseName = component.name
+      // Remove special characters and convert to doc path format
+      baseName = baseName.replace(/^[@_]+|[@_]+$/g, '') // Remove leading/trailing @ and _
+      baseName = baseName.replace(/[^a-zA-Z0-9]/g, '_') // Replace special chars with _
+      baseName = baseName.toLowerCase()
+    } else if (fallbackKey) {
+      // Use fallback key (like file path) for naming
+      const fileName = fallbackKey.split('/').pop()?.replace(/\.[^.]+$/, '') || 'module'
+      baseName = fileName.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_')
+    } else {
+      baseName = 'unknown'
+    }
     
-    // If it's too short or generic, use file context
+    // If it's too short or generic, enhance with context
     if (baseName.length < 3 || ['main', 'app', 'index', 'init'].includes(baseName)) {
-      if (fallbackPath) {
-        const fileName = fallbackPath.split('/').pop()?.replace(/\.[^.]+$/, '') || 'module'
-        return `${fileName}_${baseName}`
+      if (fallbackKey) {
+        const fileName = fallbackKey.split('/').pop()?.replace(/\.[^.]+$/, '') || 'module'
+        baseName = `${fileName}_${baseName}`.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_')
       }
     }
     
-    return baseName
+    return `${category}.${baseName}`
   }
 
   private generateComponentTitle(component: Component): string {
@@ -568,5 +613,87 @@ export class Planner {
 
   getAllStrategies(): PlanningStrategy[] {
     return Array.from(this.strategies.values())
+  }
+
+  private isConfigurationComponent(component: Component): boolean {
+    const name = component.name.toLowerCase()
+    const configPatterns = [
+      'config', 'settings', 'constants', 'env', 'options', 'params', 
+      'defaults', 'setup', 'init', 'bootstrap'
+    ]
+    
+    return configPatterns.some(pattern => name.includes(pattern)) ||
+           component.type === 'constant' ||
+           (component.metadata?.isConstant && name === name.toUpperCase())
+  }
+
+  private groupConfigurationComponents(components: Component[]): Map<string, Component[]> {
+    const groups = new Map<string, Component[]>()
+    
+    for (const component of components) {
+      // Group by file path for configuration components
+      const filePath = component.parentPath
+      const fileName = filePath.split('/').pop()?.replace(/\.[^.]+$/, '') || 'config'
+      
+      if (!groups.has(fileName)) {
+        groups.set(fileName, [])
+      }
+      groups.get(fileName)!.push(component)
+    }
+    
+    return groups
+  }
+
+  private generateConfigurationTitle(components: Component[], groupKey: string): string {
+    // Check if there's a dominant configuration class
+    const configClasses = components.filter(c => c.type === 'class')
+    if (configClasses.length > 0) {
+      return this.generateComponentTitle(configClasses[0])
+    }
+    
+    // Generate title based on the group key (usually filename)
+    const titleName = groupKey
+      .split(/[-_.]/)
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ')
+    
+    return `${titleName} Configuration`
+  }
+
+  private determineModuleCategory(components: Component[], filePath: string): string {
+    const fileName = filePath.split('/').pop()?.toLowerCase() || ''
+    const componentTypes = components.map(c => c.type)
+    
+    // Check for utility patterns
+    if (fileName.includes('util') || fileName.includes('helper') || fileName.includes('tool')) {
+      return 'utilities'
+    }
+    
+    // Check for test patterns
+    if (fileName.includes('test') || fileName.includes('spec')) {
+      return 'tests'
+    }
+    
+    // Check for type/interface patterns
+    if (fileName.includes('type') || fileName.includes('interface') || fileName.includes('model')) {
+      return 'types'
+    }
+    
+    // Check for API/networking patterns
+    if (fileName.includes('api') || fileName.includes('client') || fileName.includes('request')) {
+      return 'api'
+    }
+    
+    // Check component composition
+    if (componentTypes.includes('class') && componentTypes.length <= 2) {
+      return 'classes'
+    }
+    
+    if (componentTypes.filter(t => t === 'function').length >= 3) {
+      return 'utilities'
+    }
+    
+    // Default to modules for mixed content
+    return 'modules'
   }
 } 
