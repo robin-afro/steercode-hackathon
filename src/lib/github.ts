@@ -55,7 +55,11 @@ export class GitHubService {
       }
       
       throw new Error('File content not available')
-    } catch (error) {
+    } catch (error: any) {
+      // Handle 404 errors gracefully - file doesn't exist
+      if (error.status === 404) {
+        return null
+      }
       console.error('Error getting file content:', error)
       throw error
     }
@@ -103,7 +107,7 @@ export class GitHubService {
       const ignoreChecker = await createIgnoreChecker(async (path: string) => {
         try {
           const fileContent = await this.getFileContent(owner, repo, path)
-          return fileContent.content
+          return fileContent ? fileContent.content : null
         } catch (error) {
           return null // File doesn't exist
         }

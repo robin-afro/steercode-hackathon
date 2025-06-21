@@ -506,11 +506,358 @@ export class TypeScriptExtractor extends ComponentExtractor {
   }
 }
 
+// Python Component Extractor
+export class PythonExtractor extends ComponentExtractor {
+  language = 'python'
+  supportedExtensions = ['.py', '.pyw']
+  
+  async extractComponents(artifact: Artifact): Promise<Component[]> {
+    if (!artifact.content) return []
+    
+    const components: Component[] = []
+    const content = artifact.content
+    const lines = content.split('\n')
+    
+    // Extract imports
+    const imports = this.detectImports(content)
+    
+    // Extract classes
+    components.push(...this.extractClasses(content, artifact.path, lines))
+    
+    // Extract functions (including methods)
+    components.push(...this.extractFunctions(content, artifact.path, lines))
+    
+    // Extract decorators
+    components.push(...this.extractDecorators(content, artifact.path, lines))
+    
+    // Extract variables and constants
+    components.push(...this.extractVariables(content, artifact.path, lines))
+    
+    // Add import relations to all components
+    components.forEach(component => {
+      component.relations.push(...imports)
+    })
+    
+    return components
+  }
+  
+  private extractClasses(content: string, filePath: string, lines: string[]): Component[] {
+    const components: Component[] = []
+    const classRegex = /^(\s*)class\s+(\w+)(?:\(([^)]+)\))?:/gm
+    
+    let match
+    while ((match = classRegex.exec(content)) !== null) {
+      const [fullMatch, indentation, className, parentClasses] = match
+      const startLine = content.substring(0, match.index).split('\n').length
+      
+      const relations: ComponentRelation[] = []
+      
+      if (parentClasses) {
+        parentClasses.split(',').forEach(parent => {
+          const parentName = parent.trim()
+          if (parentName) {
+            relations.push({
+              type: 'extends',
+              target: parentName,
+              confidence: 0.9
+            })
+          }
+        })
+      }
+      
+      // Find decorators for this class
+      const decorators = this.findDecoratorsBeforeLine(content, match.index)
+      
+      components.push({
+        id: this.generateComponentId(className, 'class', filePath),
+        name: className,
+        type: 'class',
+        parentPath: filePath,
+        startLine,
+        endLine: this.findClassEndLine(content, match.index, indentation.length),
+        relations,
+        metadata: {
+          parentClasses: parentClasses?.split(',').map(s => s.trim()).filter(Boolean),
+          decorators,
+          indentationLevel: indentation.length
+        }
+              })
+      }
+      
+      return components
+  }
+  
+  private extractFunctions(content: string, filePath: string, lines: string[]): Component[] {
+    const components: Component[] = []
+    const functionRegex = /^(\s*)(?:async\s+)?def\s+(\w+)\s*\([^)]*\):/gm
+    
+    let match
+    while ((match = functionRegex.exec(content)) !== null) {
+      const [fullMatch, indentation, functionName] = match
+      const startLine = content.substring(0, match.index).split('\n').length
+      
+      // Determine if it's a method (inside a class) or standalone function
+      const isMethod = indentation.length > 0
+      const isPrivate = functionName.startsWith('_')
+      const isSpecial = functionName.startsWith('__') && functionName.endsWith('__')
+      
+      // Find decorators for this function
+      const decorators = this.findDecoratorsBeforeLine(content, match.index)
+      
+      const componentType = isMethod ? 'function' : 'function'
+      
+      components.push({
+        id: this.generateComponentId(functionName, componentType, filePath),
+        name: functionName,
+        type: componentType,
+        parentPath: filePath,
+        startLine,
+        endLine: this.findFunctionEndLine(content, match.index, indentation.length),
+        relations: this.findFunctionCalls(content, match.index),
+        metadata: {
+          isMethod,
+          isPrivate,
+          isSpecial,
+          isAsync: fullMatch.includes('async'),
+          decorators,
+          indentationLevel: indentation.length
+        }
+      })
+    }
+    
+    return components
+  }
+  
+  private extractDecorators(content: string, filePath: string, lines: string[]): Component[] {
+    const components: Component[] = []
+    const decoratorRegex = /^(\s*)@(\w+)(?:\([^)]*\))?$/gm
+    
+    let match
+    while ((match = decoratorRegex.exec(content)) !== null) {
+      const [fullMatch, indentation, decoratorName] = match
+      const startLine = content.substring(0, match.index).split('\n').length
+      
+      components.push({
+        id: this.generateComponentId(decoratorName, 'constant', filePath),
+        name: `@${decoratorName}`,
+        type: 'constant',
+        parentPath: filePath,
+        startLine,
+        endLine: startLine,
+        relations: [],
+        metadata: {
+          isDecorator: true,
+          decoratorName,
+          indentationLevel: indentation.length
+        }
+      })
+    }
+    
+    return components
+  }
+  
+  private extractVariables(content: string, filePath: string, lines: string[]): Component[] {
+    const components: Component[] = []
+    // Match variable assignments at module level (no indentation) or class level
+    const variableRegex = /^(\s*)([A-Z_][A-Z0-9_]*)\s*[:=]/gm
+    
+    let match
+    while ((match = variableRegex.exec(content)) !== null) {
+      const [fullMatch, indentation, variableName] = match
+      const startLine = content.substring(0, match.index).split('\n').length
+      
+      // Only capture constants (all caps) or class attributes
+      if (variableName === variableName.toUpperCase()) {
+        components.push({
+          id: this.generateComponentId(variableName, 'constant', filePath),
+          name: variableName,
+          type: 'constant',
+          parentPath: filePath,
+          startLine,
+          endLine: startLine,
+          relations: [],
+          metadata: {
+            isConstant: true,
+            indentationLevel: indentation.length
+          }
+        })
+      }
+    }
+    
+    return components
+  }
+  
+  protected detectImports(content: string): ComponentRelation[] {
+    const relations: ComponentRelation[] = []
+    
+    // Standard imports: import module
+    const standardImportRegex = /^import\s+(\w+(?:\.\w+)*)(?:\s+as\s+(\w+))?$/gm
+    let match
+    while ((match = standardImportRegex.exec(content)) !== null) {
+      const [, modulePath, alias] = match
+      relations.push({
+        type: 'imports',
+        target: alias || modulePath,
+        confidence: 0.95
+      })
+    }
+    
+    // From imports: from module import name1, name2
+    const fromImportRegex = /^from\s+([\w.]+)\s+import\s+(.+)$/gm
+    while ((match = fromImportRegex.exec(content)) !== null) {
+      const [, modulePath, imports] = match
+      
+      // Handle different import formats
+      if (imports.includes('(')) {
+        // Multi-line imports with parentheses
+        const multiLineMatch = content.match(new RegExp(`from\\s+${modulePath.replace('.', '\\.')}\\s+import\\s+\\([^)]+\\)`, 's'))
+        if (multiLineMatch) {
+          const importList = multiLineMatch[0].replace(/from\s+[\w.]+\s+import\s+\(|\)/g, '')
+          this.parseImportList(importList, modulePath, relations)
+        }
+      } else {
+        this.parseImportList(imports, modulePath, relations)
+      }
+    }
+    
+    return relations
+  }
+  
+  private parseImportList(imports: string, modulePath: string, relations: ComponentRelation[]): void {
+    imports.split(',').forEach(imp => {
+      const trimmed = imp.trim()
+      if (trimmed) {
+        const asMatch = trimmed.match(/(\w+)(?:\s+as\s+(\w+))?/)
+        if (asMatch) {
+          const [, importName, alias] = asMatch
+          relations.push({
+            type: 'imports',
+            target: `${modulePath}.${alias || importName}`,
+            confidence: 0.95
+          })
+        }
+      }
+    })
+  }
+  
+  private findDecoratorsBeforeLine(content: string, startIndex: number): string[] {
+    const decorators: string[] = []
+    const beforeContent = content.substring(0, startIndex)
+    const lines = beforeContent.split('\n')
+    
+    // Look backwards for decorators
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i].trim()
+      if (line.startsWith('@')) {
+        decorators.unshift(line)
+      } else if (line && !line.startsWith('#')) {
+        // Stop if we hit a non-decorator, non-comment line
+        break
+      }
+    }
+    
+    return decorators
+  }
+  
+  private findClassEndLine(content: string, startIndex: number, indentationLevel: number): number {
+    const lines = content.substring(startIndex).split('\n')
+    
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i]
+      if (line.trim() === '') continue // Skip empty lines
+      
+      const currentIndentation = line.length - line.trimStart().length
+      if (currentIndentation <= indentationLevel && line.trim()) {
+        return content.substring(0, startIndex).split('\n').length + i - 1
+      }
+    }
+    
+    return content.split('\n').length
+  }
+  
+  private findFunctionEndLine(content: string, startIndex: number, indentationLevel: number): number {
+    const lines = content.substring(startIndex).split('\n')
+    
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i]
+      if (line.trim() === '') continue // Skip empty lines
+      
+      const currentIndentation = line.length - line.trimStart().length
+      if (currentIndentation <= indentationLevel && line.trim()) {
+        return content.substring(0, startIndex).split('\n').length + i - 1
+      }
+    }
+    
+    return content.split('\n').length
+  }
+  
+  private findFunctionCalls(content: string, startIndex: number): ComponentRelation[] {
+    const relations: ComponentRelation[] = []
+    const functionContent = this.extractFunctionContent(content, startIndex)
+    
+    // Find function calls: function_name(
+    const functionCallRegex = /(\w+)\s*\(/g
+    let match
+    while ((match = functionCallRegex.exec(functionContent)) !== null) {
+      const [, functionName] = match
+      // Skip common Python keywords and built-ins
+      if (!['if', 'for', 'while', 'with', 'try', 'except', 'print', 'len', 'str', 'int', 'float', 'bool', 'list', 'dict', 'tuple', 'set'].includes(functionName)) {
+        relations.push({
+          type: 'calls',
+          target: functionName,
+          confidence: 0.8
+        })
+      }
+    }
+    
+    // Find method calls: object.method(
+    const methodCallRegex = /(\w+)\.(\w+)\s*\(/g
+    while ((match = methodCallRegex.exec(functionContent)) !== null) {
+      const [, objectName, methodName] = match
+      relations.push({
+        type: 'uses',
+        target: `${objectName}.${methodName}`,
+        confidence: 0.8
+      })
+    }
+    
+    return relations
+  }
+  
+  private extractFunctionContent(content: string, startIndex: number): string {
+    const lines = content.substring(startIndex).split('\n')
+    if (lines.length === 0) return ''
+    
+    const firstLine = lines[0]
+    const baseIndentation = firstLine.length - firstLine.trimStart().length
+    
+    let functionContent = firstLine + '\n'
+    
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i]
+      if (line.trim() === '') {
+        functionContent += line + '\n'
+        continue
+      }
+      
+      const currentIndentation = line.length - line.trimStart().length
+      if (currentIndentation <= baseIndentation && line.trim()) {
+        break
+      }
+      
+      functionContent += line + '\n'
+    }
+    
+    return functionContent
+  }
+}
+
 // Factory for creating language-specific extractors
 export class ComponentExtractorFactory {
   private static extractors = new Map<string, ComponentExtractor>([
     ['typescript', new TypeScriptExtractor()],
     ['javascript', new TypeScriptExtractor()], // TypeScript extractor handles JS too
+    ['python', new PythonExtractor()],
   ])
   
   static getExtractor(language: string): ComponentExtractor | null {
