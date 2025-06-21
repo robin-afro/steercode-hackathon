@@ -23,13 +23,19 @@ import {
 } from 'lucide-react'
 
 export default function DocumentationPage() {
-  const [, setUser] = useState<any>(null)
+  const [user, setUser] = useState<any>(null)
+  const [repositories, setRepositories] = useState<any[]>([])
+  const [documents, setDocuments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const supabase = createClient()
 
   useEffect(() => {
-    const checkUser = async () => {
-      const supabase = createClient()
+    loadData()
+  }, [])
+
+  const loadData = async () => {
+    try {
       const { data: { user } } = await supabase.auth.getUser()
       
       if (!user) {
@@ -38,11 +44,33 @@ export default function DocumentationPage() {
       }
       
       setUser(user)
+
+      // Load user's repositories
+      const { data: repos } = await supabase
+        .from('repositories')
+        .select('*')
+        .eq('user_id', user.id)
+
+      setRepositories(repos || [])
+
+      // Load all documents for user's repositories
+      if (repos && repos.length > 0) {
+        const repoIds = repos.map(repo => repo.id)
+        const { data: docs } = await supabase
+          .from('documents')
+          .select('*, repositories!inner(name, full_name)')
+          .in('repository_id', repoIds)
+          .order('updated_at', { ascending: false })
+
+        setDocuments(docs || [])
+      }
+
+    } catch (error) {
+      console.error('Error loading data:', error)
+    } finally {
       setLoading(false)
     }
-
-    checkUser()
-  }, [router])
+  }
 
   if (loading) {
     return (
@@ -55,14 +83,17 @@ export default function DocumentationPage() {
     )
   }
 
-  // Dummy stats for the overview
+  // Real stats from user's data
   const stats = {
-    totalDocuments: 156,
-    documentsUpdatedToday: 12,
-    crossReferences: 89,
-    learningPaths: 8,
-    avgOnboardingTime: '3.2 hours',
-    codebaseComplexity: 'Medium'
+    totalDocuments: documents.length,
+    totalRepositories: repositories.length,
+    documentedRepositories: repositories.filter(r => r.analysis_status === 'completed').length,
+    pendingAnalysis: repositories.filter(r => r.analysis_status === 'pending').length,
+    recentUpdates: documents.filter(doc => {
+      const dayAgo = new Date()
+      dayAgo.setDate(dayAgo.getDate() - 1)
+      return new Date(doc.updated_at) > dayAgo
+    }).length
   }
 
   const handleGlobalSearch = (query: string) => {
@@ -153,46 +184,46 @@ export default function DocumentationPage() {
                 <CardContent>
                   <div className="text-2xl font-bold">{stats.totalDocuments}</div>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    +{stats.documentsUpdatedToday} updated today
+                    +{stats.recentUpdates} updated recently
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Cross References</CardTitle>
+                  <CardTitle className="text-sm font-medium">Repositories</CardTitle>
                   <GitBranch className="h-4 w-4 text-gray-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.crossReferences}</div>
+                  <div className="text-2xl font-bold">{stats.totalRepositories}</div>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Intelligent connections
+                    Connected repositories
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Learning Paths</CardTitle>
-                  <Users className="h-4 w-4 text-gray-500" />
+                  <CardTitle className="text-sm font-medium">Documented</CardTitle>
+                  <Users className="h-4 w-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.learningPaths}</div>
+                  <div className="text-2xl font-bold">{stats.documentedRepositories}</div>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Active onboarding paths
+                    Fully analyzed repos
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Avg Onboarding</CardTitle>
-                  <Clock className="h-4 w-4 text-gray-500" />
+                  <CardTitle className="text-sm font-medium">Pending Analysis</CardTitle>
+                  <Clock className="h-4 w-4 text-yellow-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.avgOnboardingTime}</div>
+                  <div className="text-2xl font-bold">{stats.pendingAnalysis}</div>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Time to first contribution
+                    Awaiting documentation
                   </p>
                 </CardContent>
               </Card>
@@ -207,50 +238,62 @@ export default function DocumentationPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {[
-                      { title: 'Authentication Flow Updated', time: '2 hours ago', type: 'backend.auth.overview' },
-                      { title: 'New UI Components Added', time: '5 hours ago', type: 'frontend.components.ui' },
-                      { title: 'Database Schema Changes', time: '1 day ago', type: 'backend.database.schema' },
-                      { title: 'API Endpoints Documentation', time: '2 days ago', type: 'backend.api.routes' }
-                    ].map((update, index) => (
+                    {documents.length > 0 ? documents.slice(0, 4).map((doc, index) => (
                       <div key={index} className="flex items-center justify-between p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800">
                         <div>
-                          <p className="text-sm font-medium">{update.title}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{update.type}</p>
+                          <p className="text-sm font-medium">{doc.title}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {doc.repositories?.name} • {doc.document_type}
+                          </p>
                         </div>
-                        <span className="text-xs text-gray-500">{update.time}</span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(doc.updated_at).toLocaleDateString()}
+                        </span>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-gray-500">No documentation updates yet</p>
+                        <p className="text-xs text-gray-400 mt-1">Import and analyze repositories to see updates here</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Popular Learning Paths</CardTitle>
-                  <CardDescription>Most accessed onboarding paths</CardDescription>
+                  <CardTitle className="text-base">Your Repositories</CardTitle>
+                  <CardDescription>Documentation status overview</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {[
-                      { title: 'Frontend Development Basics', users: 12, completion: 75 },
-                      { title: 'Backend Architecture Deep Dive', users: 8, completion: 60 },
-                      { title: 'Database Management Guide', users: 6, completion: 90 },
-                      { title: 'API Integration Patterns', users: 4, completion: 45 }
-                    ].map((path, index) => (
+                    {repositories.length > 0 ? repositories.slice(0, 4).map((repo, index) => (
                       <div key={index} className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium">{path.title}</p>
-                          <span className="text-xs text-gray-500">{path.users} users</span>
+                          <p className="text-sm font-medium">{repo.name}</p>
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            repo.analysis_status === 'completed' 
+                              ? 'bg-green-100 text-green-800' 
+                              : repo.analysis_status === 'analyzing'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {repo.analysis_status === 'completed' && '✓ Documented'}
+                            {repo.analysis_status === 'analyzing' && '⏳ Analyzing'}
+                            {repo.analysis_status === 'pending' && '⏸️ Pending'}
+                            {repo.analysis_status === 'failed' && '❌ Failed'}
+                          </span>
                         </div>
-                        <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-blue-500 rounded-full" 
-                            style={{ width: `${path.completion}%` }}
-                          />
-                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {repo.description || 'No description'}
+                        </p>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-gray-500">No repositories connected</p>
+                        <p className="text-xs text-gray-400 mt-1">Go to Settings to import repositories</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
