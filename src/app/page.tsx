@@ -366,39 +366,26 @@ export default function HomePage() {
                           </Button>
                         </Link>
                       )}
-                      <Button 
-                        size="sm"
-                        disabled={repo.analysis_status === 'analyzing'}
-                        variant={repo.analysis_status !== 'analyzing' ? 'primary' : 'default'}
-                        onClick={async () => {
-                          // Trigger analysis
-                          try {
-                            const response = await fetch('/api/analyze/repository', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ repositoryId: repo.id })
-                            })
-                            if (response.ok) {
-                              // Refresh repositories
-                              window.location.reload()
-                            }
-                          } catch (error) {
-                            console.error('Analysis failed:', error)
-                          }
-                        }}
-                      >
-                        {repo.analysis_status === 'analyzing' ? (
-                          <>
-                            <TrendingUp className="mr-2 h-4 w-4 animate-spin" />
-                            Analyzing...
-                          </>
-                        ) : (
-                          <>
+                      {repo.analysis_status === 'analyzing' ? (
+                        <Button 
+                          size="sm"
+                          disabled={true}
+                          variant="default"
+                        >
+                          <TrendingUp className="mr-2 h-4 w-4 animate-spin" />
+                          Analyzing...
+                        </Button>
+                      ) : (
+                        <Link href={`/repositories/${repo.id}/generate`}>
+                          <Button 
+                            size="sm"
+                            variant="primary"
+                          >
                             <Zap className="mr-2 h-4 w-4" />
                             Generate Docs
-                          </>
-                        )}
-                      </Button>
+                          </Button>
+                        </Link>
+                      )}
                     </div>
                   </CardHeader>
                 </Card>
