@@ -207,7 +207,7 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <Link href="/settings?step=connect-gh">
-                  <Button size="lg" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
+                  <Button size="lg" variant="primary">
                     <Plus className="mr-2 h-4 w-4" />
                     Connect Repositories
                   </Button>
@@ -369,6 +369,7 @@ export default function HomePage() {
                       <Button 
                         size="sm"
                         disabled={repo.analysis_status === 'analyzing'}
+                        variant={repo.analysis_status !== 'analyzing' ? 'primary' : 'default'}
                         onClick={async () => {
                           // Trigger analysis
                           try {
@@ -385,10 +386,6 @@ export default function HomePage() {
                             console.error('Analysis failed:', error)
                           }
                         }}
-                        style={repo.analysis_status !== 'analyzing' ? { 
-                          backgroundColor: 'var(--color-primary)', 
-                          color: 'white' 
-                        } : {}}
                       >
                         {repo.analysis_status === 'analyzing' ? (
                           <>

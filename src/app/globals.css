@@ -221,3 +221,69 @@ svg,
     color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
     opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* Comprehensive theme overrides for stubborn elements */
+.dark .bg-white,
+[data-theme="dark"] .bg-white {
+  background-color: var(--color-surface) !important;
+}
+
+.dark .bg-gray-50,
+[data-theme="dark"] .bg-gray-50 {
+  background-color: var(--color-canvas) !important;
+}
+
+.dark .bg-gray-100,
+[data-theme="dark"] .bg-gray-100 {
+  background-color: var(--overlay-10) !important;
+}
+
+.dark .text-gray-900,
+[data-theme="dark"] .text-gray-900 {
+  color: var(--color-text-primary) !important;
+}
+
+.dark .text-gray-800,
+[data-theme="dark"] .text-gray-800 {
+  color: var(--color-text-primary) !important;
+}
+
+.dark .border-gray-200,
+[data-theme="dark"] .border-gray-200 {
+  border-color: var(--color-border) !important;
+}
+
+.dark .border-gray-300,
+[data-theme="dark"] .border-gray-300 {
+  border-color: var(--color-border) !important;
+}
+
+/* Remove the overly broad button color overrides - let the button component handle its own styling */
+
+/* Fix specific UI components */
+.dark [role="menuitem"],
+[data-theme="dark"] [role="menuitem"] {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.dark [role="menuitem"]:hover,
+[data-theme="dark"] [role="menuitem"]:hover {
+  background-color: var(--overlay-10) !important;
+}
+
+/* Override any remaining stubborn backgrounds */
+.dark *[style*="background-color: white"],
+[data-theme="dark"] *[style*="background-color: white"] {
+  background-color: var(--color-surface) !important;
+}
+
+.dark *[style*="background-color: #fff"],
+[data-theme="dark"] *[style*="background-color: #fff"] {
+  background-color: var(--color-surface) !important;
+}
+
+.dark *[style*="background-color: #ffffff"],
+[data-theme="dark"] *[style*="background-color: #ffffff"] {
+  background-color: var(--color-surface) !important;
+}

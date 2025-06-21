@@ -27,15 +27,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 dark:bg-gray-900">
+    <div className="flex min-h-screen items-center justify-center px-4 py-12" style={{ backgroundColor: 'var(--color-canvas)' }}>
       <div className="fixed top-4 right-4">
         <ThemeToggle />
       </div>
       
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
         <CardHeader className="space-y-1">
-          <CardTitle className="text-3xl font-bold">Welcome to Lookas</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-3xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Welcome to Lookas</CardTitle>
+          <CardDescription style={{ color: 'var(--color-text-secondary)' }}>
             Connect your GitHub account to generate AI-powered code documentation
           </CardDescription>
         </CardHeader>
@@ -44,11 +44,12 @@ export default function LoginPage() {
             onClick={handleGitHubLogin}
             className="w-full"
             size="lg"
+            variant="primary"
           >
             <Github className="mr-2 h-5 w-5" />
             Continue with GitHub
           </Button>
-          <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
+          <p className="mt-4 text-center text-sm" style={{ color: 'var(--color-text-secondary)' }}>
             By signing in, you agree to grant Lookas access to your GitHub repositories
             for code documentation generation.
           </p>

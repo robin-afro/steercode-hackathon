@@ -259,12 +259,14 @@ export default function RepositoryDocsPage() {
               toggleNodeExpansion(node.path)
             }
           }}
-          className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-2 ${
-            isSelected
-              ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
-              : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
-          }`}
-          style={{ paddingLeft: `${level * 16 + 12}px` }}
+          className="w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-2"
+          style={{ 
+            paddingLeft: `${level * 16 + 12}px`,
+            ...(isSelected
+              ? { backgroundColor: 'var(--color-primary)', color: 'white' }
+              : { color: 'var(--color-text-primary)' }
+            )
+          }}
         >
           {hasChildren && (
             node.expanded ? (
@@ -295,11 +297,11 @@ export default function RepositoryDocsPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="flex h-screen" style={{ backgroundColor: 'var(--color-canvas)' }}>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading documentation...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto" style={{ borderColor: 'var(--color-primary)' }}></div>
+            <p className="mt-4" style={{ color: 'var(--color-text-secondary)' }}>Loading documentation...</p>
           </div>
         </div>
       </div>
@@ -308,12 +310,12 @@ export default function RepositoryDocsPage() {
 
   if (error) {
     return (
-      <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="flex h-screen" style={{ backgroundColor: 'var(--color-canvas)' }}>
         <div className="flex-1 flex items-center justify-center">
-          <Card className="max-w-md">
+          <Card className="max-w-md" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
             <CardHeader>
-              <CardTitle>Error</CardTitle>
-              <CardDescription>{error}</CardDescription>
+              <CardTitle style={{ color: 'var(--color-text-primary)' }}>Error</CardTitle>
+              <CardDescription style={{ color: 'var(--color-text-secondary)' }}>{error}</CardDescription>
             </CardHeader>
             <CardContent>
               <Link href="/">
@@ -330,17 +332,17 @@ export default function RepositoryDocsPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-screen" style={{ backgroundColor: 'var(--color-canvas)' }}>
       {/* Sidebar */}
-      <aside className="w-64 border-r border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
+      <aside className="w-64 border-r" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
         <div className="flex h-full flex-col">
           {/* Header */}
-          <div className="border-b border-gray-200 dark:border-gray-800 p-4">
+          <div className="border-b p-4" style={{ borderColor: 'var(--color-border)' }}>
             <Link href="/">
-              <h1 className="text-xl font-bold">Lookas</h1>
+              <h1 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Lookas</h1>
             </Link>
             <div className="mt-2">
-              <Link href="/" className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
+              <Link href="/" className="text-sm hover:text-gray-700 flex items-center gap-1" style={{ color: 'var(--color-text-secondary)' }}>
                 <ArrowLeft className="h-3 w-3" />
                 Back to Dashboard
               </Link>
@@ -348,15 +350,16 @@ export default function RepositoryDocsPage() {
           </div>
 
           {/* Repository Info */}
-          <div className="border-b border-gray-200 dark:border-gray-800 p-4">
-            <h2 className="font-semibold text-lg">{repository?.name}</h2>
-            <p className="text-sm text-gray-500 mt-1">{repository?.description || 'No description'}</p>
+          <div className="border-b p-4" style={{ borderColor: 'var(--color-border)' }}>
+            <h2 className="font-semibold text-lg" style={{ color: 'var(--color-text-primary)' }}>{repository?.name}</h2>
+            <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>{repository?.description || 'No description'}</p>
             {repository?.github_url && (
               <a 
                 href={repository.github_url} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:text-blue-800 mt-2 inline-block"
+                className="text-sm mt-2 inline-block"
+                style={{ color: 'var(--color-primary)' }}
               >
                 View on GitHub →
               </a>
@@ -364,15 +367,21 @@ export default function RepositoryDocsPage() {
           </div>
 
           {/* Search */}
-          <div className="border-b border-gray-200 dark:border-gray-800 p-4">
+          <div className="border-b p-4" style={{ borderColor: 'var(--color-border)' }}>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4" style={{ color: 'var(--color-text-muted)' }} />
               <input
                 type="text"
                 placeholder="Search documentation..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+                className="w-full pl-10 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent"
+                style={{ 
+                  borderColor: 'var(--color-border)', 
+                  backgroundColor: 'var(--color-canvas)', 
+                  color: 'var(--color-text-primary)',
+                  '--tw-ring-color': 'var(--color-primary)'
+                } as React.CSSProperties}
               />
             </div>
           </div>
@@ -381,8 +390,8 @@ export default function RepositoryDocsPage() {
           <div className="flex-1 overflow-y-auto">
             <div className="p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-gray-700">Documentation</h3>
-                <span className="text-xs text-gray-500">{documents.length} docs</span>
+                <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>Documentation</h3>
+                <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>{documents.length} docs</span>
               </div>
               <div className="space-y-1">
                 {searchQuery ? (
@@ -391,11 +400,11 @@ export default function RepositoryDocsPage() {
                     <button
                       key={doc.id}
                       onClick={() => setSelectedDocument(doc)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${
-                        selectedDocument?.id === doc.id
-                          ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
-                          : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
-                      }`}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2`}
+                      style={selectedDocument?.id === doc.id 
+                        ? { backgroundColor: 'var(--color-primary)', color: 'white' }
+                        : { color: 'var(--color-text-primary)' }
+                      }
                     >
                       {getDocumentIcon(doc.document_type)}
                       <span className="truncate">{doc.title}</span>
@@ -410,20 +419,20 @@ export default function RepositoryDocsPage() {
           </div>
 
           {/* Navigation Links */}
-          <div className="border-t border-gray-200 p-4 dark:border-gray-800">
+          <div className="border-t p-4" style={{ borderColor: 'var(--color-border)' }}>
             <div className="space-y-1 mb-4">
-              <Link href="/" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-50">
+              <Link href="/" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-gray-100 dark:hover:bg-gray-800" style={{ color: 'var(--color-text-primary)' }}>
                 <Home className="h-4 w-4" />
                 Dashboard
               </Link>
-              <Link href="/settings" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-50">
+              <Link href="/settings" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-gray-100 dark:hover:bg-gray-800" style={{ color: 'var(--color-text-primary)' }}>
                 <Settings className="h-4 w-4" />
                 Settings
               </Link>
             </div>
             
-            <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-800">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Theme</span>
+            <div className="flex items-center justify-between pt-4 border-t" style={{ borderColor: 'var(--color-border)' }}>
+              <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Theme</span>
               <ThemeToggle />
             </div>
           </div>
@@ -435,19 +444,19 @@ export default function RepositoryDocsPage() {
         {selectedDocument ? (
           <div className="h-full flex flex-col">
             {/* Document Header */}
-            <div className="border-b border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-950">
+            <div className="border-b p-6" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
               <div className="flex items-center gap-2 mb-2">
                 {getDocumentIcon(selectedDocument.document_type)}
-                <span className="text-sm text-gray-500 capitalize">{selectedDocument.document_type}</span>
+                <span className="text-sm capitalize" style={{ color: 'var(--color-text-secondary)' }}>{selectedDocument.document_type}</span>
               </div>
-              <h1 className="text-2xl font-bold">{selectedDocument.title}</h1>
+              <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{selectedDocument.title}</h1>
               {selectedDocument.file_path && (
-                <p className="text-sm text-gray-500 mt-1">{selectedDocument.file_path}</p>
+                <p className="text-sm mt-1" style={{ color: 'var(--color-text-secondary)' }}>{selectedDocument.file_path}</p>
               )}
             </div>
 
             {/* Document Content */}
-            <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-950">
+            <div className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--color-surface)' }}>
               <div className="max-w-4xl mx-auto p-6">
                 {/* Hidden script tag for raw markdown content */}
                 <script type="text/plain" id="raw-markdown">
@@ -464,13 +473,13 @@ export default function RepositoryDocsPage() {
         ) : (
           <div className="flex h-full items-center justify-center">
             <div className="text-center">
-              <Book className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-gray-700 mb-2">No Documentation Available</h2>
-              <p className="text-gray-500 mb-4">
+              <Book className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--color-text-muted)' }} />
+              <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>No Documentation Available</h2>
+              <p className="mb-4" style={{ color: 'var(--color-text-secondary)' }}>
                 This repository hasn't been analyzed yet.
               </p>
               <Link href="/settings">
-                <Button>
+                <Button variant="primary">
                   Analyze Repository
                 </Button>
               </Link>

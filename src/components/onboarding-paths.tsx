@@ -224,6 +224,7 @@ export function OnboardingPaths() {
                   </div>
                   <Button 
                     className="w-full mt-4" 
+                    variant="primary"
                     onClick={() => handlePathSelect(path)}
                   >
                     {path.completedSteps > 0 ? 'Continue Learning' : 'Start Path'}
@@ -361,6 +362,7 @@ export function OnboardingPaths() {
                       {!activeStep.completed && (
                         <Button
                           size="sm"
+                          variant="primary"
                           onClick={() => handleCompleteStep(activeStep.id)}
                         >
                           Mark Complete
