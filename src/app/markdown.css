@@ -130,7 +130,7 @@
 /* Code */
 .markdown-content code {
   background-color: #f3f4f6;
-  color: #e11d48;
+  color: #1f2937;
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
   font-family: 'Courier New', Courier, monospace;
@@ -139,7 +139,23 @@
 
 .dark .markdown-content code {
   background-color: #374151;
-  color: #fbbf24;
+  color: #f9fafb;
+}
+
+/* Remove code styling from headings */
+.markdown-content h1 code,
+.markdown-content h2 code,
+.markdown-content h3 code,
+.markdown-content h4 code,
+.markdown-content h5 code,
+.markdown-content h6 code {
+  background-color: transparent;
+  color: inherit;
+  padding: 0;
+  border-radius: 0;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
 }
 
 /* Code Blocks */
@@ -151,6 +167,7 @@
   overflow-x: auto;
   margin-bottom: 1rem;
   line-height: 1.5;
+  position: relative;
 }
 
 .dark .markdown-content pre {
@@ -159,7 +176,7 @@
 }
 
 .markdown-content pre code {
-  background-color: transparent;
+  background-color: transparent !important;
   color: #1f2937;
   padding: 0;
   border-radius: 0;
@@ -168,6 +185,83 @@
 
 .dark .markdown-content pre code {
   color: #f9fafb;
+}
+
+/* Syntax highlighting styles */
+.markdown-content pre code .hljs-comment,
+.markdown-content pre code .hljs-quote {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.markdown-content pre code .hljs-keyword,
+.markdown-content pre code .hljs-selector-tag,
+.markdown-content pre code .hljs-literal {
+  color: #7c3aed;
+  font-weight: 600;
+}
+
+.markdown-content pre code .hljs-string,
+.markdown-content pre code .hljs-title {
+  color: #059669;
+}
+
+.markdown-content pre code .hljs-number,
+.markdown-content pre code .hljs-attr {
+  color: #dc2626;
+}
+
+.markdown-content pre code .hljs-function,
+.markdown-content pre code .hljs-class .hljs-title {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.markdown-content pre code .hljs-variable,
+.markdown-content pre code .hljs-name {
+  color: #ea580c;
+}
+
+.markdown-content pre code .hljs-regexp,
+.markdown-content pre code .hljs-link {
+  color: #0891b2;
+}
+
+/* Dark mode syntax highlighting */
+.dark .markdown-content pre code .hljs-comment,
+.dark .markdown-content pre code .hljs-quote {
+  color: #9ca3af;
+}
+
+.dark .markdown-content pre code .hljs-keyword,
+.dark .markdown-content pre code .hljs-selector-tag,
+.dark .markdown-content pre code .hljs-literal {
+  color: #a78bfa;
+}
+
+.dark .markdown-content pre code .hljs-string,
+.dark .markdown-content pre code .hljs-title {
+  color: #34d399;
+}
+
+.dark .markdown-content pre code .hljs-number,
+.dark .markdown-content pre code .hljs-attr {
+  color: #f87171;
+}
+
+.dark .markdown-content pre code .hljs-function,
+.dark .markdown-content pre code .hljs-class .hljs-title {
+  color: #60a5fa;
+}
+
+.dark .markdown-content pre code .hljs-variable,
+.dark .markdown-content pre code .hljs-name {
+  color: #fb923c;
+}
+
+.dark .markdown-content pre code .hljs-regexp,
+.dark .markdown-content pre code .hljs-link {
+  color: #22d3ee;
 }
 
 /* Tables */

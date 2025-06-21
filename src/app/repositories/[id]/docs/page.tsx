@@ -59,8 +59,9 @@ export default function RepositoryDocsPage() {
     if (selectedDocument?.content) {
       const parseMarkdown = async () => {
         try {
-          // Import marked dynamically
+          // Import marked and highlight.js dynamically
           const { marked } = await import('marked')
+          const hljs = await import('highlight.js')
           
           // Configure marked options
           marked.setOptions({
@@ -78,6 +79,12 @@ export default function RepositoryDocsPage() {
           const contentDiv = document.getElementById('markdown-content')
           if (contentDiv) {
             contentDiv.innerHTML = html
+            
+            // Apply syntax highlighting to code blocks
+            const codeBlocks = contentDiv.querySelectorAll('pre code')
+            codeBlocks.forEach((block) => {
+              hljs.default.highlightElement(block as HTMLElement)
+            })
           }
         } catch (error) {
           console.error('Error parsing markdown:', error)
