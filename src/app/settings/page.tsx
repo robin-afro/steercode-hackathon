@@ -8,57 +8,97 @@ import { Github, Plus, Trash2, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 
 export default function SettingsPage() {
-  const [organizations, setOrganizations] = useState<any[]>([])
   const [repositories, setRepositories] = useState<any[]>([])
+  const [availableRepos, setAvailableRepos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingGithub, setLoadingGithub] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
-    loadOrganizations()
+    loadRepositories()
   }, [])
 
-  const loadOrganizations = async () => {
+  const loadRepositories = async () => {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     
     if (user) {
-      const { data } = await supabase
-        .from('user_organizations')
-        .select('*, organizations(*)')
+      // Ensure user record exists
+      await supabase
+        .from('users')
+        .upsert({
+          id: user.id,
+          email: user.email || '',
+          github_username: user.user_metadata?.user_name || user.user_metadata?.preferred_username,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'id'
+        })
+
+      const { data: repos } = await supabase
+        .from('repositories')
+        .select('*')
         .eq('user_id', user.id)
       
-      if (data) {
-        setOrganizations(data.map(d => d.organizations))
-        
-        // Load repositories for these organizations
-        const orgIds = data.map(d => d.organization_id)
-        const { data: repos } = await supabase
-          .from('repositories')
-          .select('*')
-          .in('organization_id', orgIds)
-        
-        if (repos) {
-          setRepositories(repos)
-        }
+      if (repos) {
+        setRepositories(repos)
       }
     }
     setLoading(false)
   }
 
-  const syncRepository = async (repoId: string) => {
+  const loadAvailableRepositories = async () => {
+    setLoadingGithub(true)
     try {
-      const response = await fetch('/api/github/sync', {
+      const response = await fetch('/api/github/repositories')
+      if (response.ok) {
+        const data = await response.json()
+        setAvailableRepos(data.repositories || [])
+      } else {
+        console.error('Failed to load repositories from GitHub')
+      }
+    } catch (error) {
+      console.error('Error loading GitHub repositories:', error)
+    }
+    setLoadingGithub(false)
+  }
+
+  const importRepository = async (repoData: any) => {
+    try {
+      const response = await fetch('/api/github/import-repository', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repositoryData: repoData })
+      })
+      
+      if (response.ok) {
+        await loadRepositories()
+        await loadAvailableRepositories() // Refresh to remove imported repo
+        console.log('Repository imported successfully')
+      } else {
+        const error = await response.json()
+        alert(`Error: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Error importing repository:', error)
+    }
+  }
+
+  const analyzeRepository = async (repoId: string) => {
+    try {
+      const response = await fetch('/api/analyze/repository', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ repositoryId: repoId })
       })
       
       if (response.ok) {
-        // Show success message
-        console.log('Sync initiated successfully')
+        // Refresh the repository list
+        await loadRepositories()
+        console.log('Analysis initiated successfully')
       }
     } catch (error) {
-      console.error('Error syncing repository:', error)
+      console.error('Error analyzing repository:', error)
     }
   }
 
@@ -94,44 +134,63 @@ export default function SettingsPage() {
             </p>
           </div>
 
-          {/* Organizations */}
+          {/* Add Repository */}
           <Card className="mb-8">
             <CardHeader>
-              <CardTitle>GitHub Organizations</CardTitle>
+              <CardTitle>Add Repository</CardTitle>
               <CardDescription>
-                Connected organizations from your GitHub account
+                Connect individual repositories from your GitHub account
               </CardDescription>
+
             </CardHeader>
-            <CardContent>
-              {loading ? (
-                <p className="text-sm text-gray-500">Loading...</p>
-              ) : organizations.length > 0 ? (
-                <div className="space-y-3">
-                  {organizations.map((org) => (
-                    <div key={org.id} className="flex items-center justify-between rounded-lg border p-3">
-                      <div className="flex items-center gap-3">
-                        {org.avatar_url && (
-                          <img src={org.avatar_url} alt={org.name} className="h-8 w-8 rounded-full" />
-                        )}
-                        <div>
-                          <p className="font-medium">{org.name || org.login}</p>
-                          <p className="text-sm text-gray-500">@{org.login}</p>
-                        </div>
+                          <CardContent>
+                <div className="space-y-4">
+                  <Button 
+                    onClick={loadAvailableRepositories}
+                    disabled={loadingGithub}
+                    className="w-full"
+                  >
+                    <Github className="mr-2 h-4 w-4" />
+                    {loadingGithub ? 'Loading...' : 'Load My GitHub Repositories'}
+                  </Button>
+                  
+                  {availableRepos.length > 0 && (
+                    <div className="border rounded-lg p-4 max-h-64 overflow-y-auto">
+                      <h4 className="font-medium mb-3">Available Repositories:</h4>
+                      <div className="space-y-2">
+                        {availableRepos
+                          .filter(repo => !repositories.some(r => r.github_id === repo.github_id))
+                          .map((repo) => (
+                          <div key={repo.github_id} className="flex items-center justify-between p-2 border rounded">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{repo.name}</p>
+                              <p className="text-xs text-gray-500">{repo.description || 'No description'}</p>
+                              <div className="flex gap-2 mt-1">
+                                {repo.language && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-blue-100 text-blue-800">
+                                    {repo.language}
+                                  </span>
+                                )}
+                                {repo.private && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-gray-100 text-gray-800">
+                                    🔒 Private
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              onClick={() => importRepository(repo)}
+                            >
+                              Import
+                            </Button>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  ))}
+                  )}
                 </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Github className="mx-auto h-12 w-12 text-gray-400" />
-                  <p className="mt-2 text-sm text-gray-500">No organizations connected yet</p>
-                  <Button className="mt-4" onClick={() => window.location.href = '/login'}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Connect GitHub Account
-                  </Button>
-                </div>
-              )}
-            </CardContent>
+              </CardContent>
           </Card>
 
           {/* Repositories */}
@@ -154,10 +213,11 @@ export default function SettingsPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => syncRepository(repo.id)}
+                        onClick={() => analyzeRepository(repo.id)}
+                        disabled={repo.analysis_status === 'analyzing'}
                       >
                         <RefreshCw className="mr-2 h-4 w-4" />
-                        Sync
+                        {repo.analysis_status === 'analyzing' ? 'Analyzing...' : 'EXPLAIN'}
                       </Button>
                     </div>
                   ))}

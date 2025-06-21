@@ -13,13 +13,25 @@ export default async function HomePage() {
     redirect('/login')
   }
 
-  // Fetch user's organizations and repositories
-  const { data: userOrgs } = await supabase
-    .from('user_organizations')
-    .select('organization_id, organizations(*)')
+  // Ensure user record exists in database
+  await supabase
+    .from('users')
+    .upsert({
+      id: user.id,
+      email: user.email || '',
+      github_username: user.user_metadata?.user_name || user.user_metadata?.preferred_username,
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'id'
+    })
+
+  // Fetch user's repositories
+  const { data: repositories } = await supabase
+    .from('repositories')
+    .select('*')
     .eq('user_id', user.id)
 
-  const hasOrganizations = userOrgs && userOrgs.length > 0
+  const hasRepositories = repositories && repositories.length > 0
 
   const navItems = [
     { href: '/', icon: Home, label: 'Dashboard' },
@@ -73,140 +85,136 @@ export default async function HomePage() {
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto">
-        <div className="p-8">
-          {!hasOrganizations ? (
-            <>
-              <div className="mb-8">
-                <h1 className="text-3xl font-bold tracking-tight">Welcome to Lookas</h1>
-                <p className="text-gray-500 dark:text-gray-400 mt-2">
-                  Let's get started by connecting your GitHub organizations
-                </p>
-              </div>
+                 <div className="p-8">
+           {!hasRepositories ? (
+             <>
+               <div className="mb-8">
+                 <h1 className="text-3xl font-bold tracking-tight">Welcome to Lookas</h1>
+                 <p className="text-gray-500 dark:text-gray-400 mt-2">
+                   Let's get started by connecting your GitHub repositories
+                 </p>
+               </div>
 
-              <Card className="max-w-2xl">
-                <CardHeader>
-                  <CardTitle>Connect Your GitHub Organizations</CardTitle>
-                  <CardDescription>
-                    Import your repositories to start tracking metrics and getting AI-powered insights
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Link href="/settings">
-                    <Button size="lg">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Connect Organizations
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <>
-              <div className="mb-8">
-                <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-                <p className="text-gray-500 dark:text-gray-400 mt-2">
-                  Monitor your repository activity and team performance
-                </p>
-              </div>
+               <Card className="max-w-2xl">
+                 <CardHeader>
+                   <CardTitle>Connect Your GitHub Repositories</CardTitle>
+                   <CardDescription>
+                     Import individual repositories to generate comprehensive code documentation
+                   </CardDescription>
+                 </CardHeader>
+                 <CardContent>
+                   <Link href="/settings">
+                     <Button size="lg">
+                       <Plus className="mr-2 h-4 w-4" />
+                       Connect Repositories
+                     </Button>
+                   </Link>
+                 </CardContent>
+               </Card>
+             </>
+           ) : (
+                         <>
+               <div className="mb-8">
+                 <h1 className="text-3xl font-bold tracking-tight">Your Repositories</h1>
+                 <p className="text-gray-500 dark:text-gray-400 mt-2">
+                   Connected repositories and their documentation status
+                 </p>
+               </div>
 
-              {/* Metrics Grid */}
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Open Pull Requests</CardTitle>
-                    <GitPullRequest className="h-4 w-4 text-gray-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">12</div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Across all repositories
-                    </p>
-                  </CardContent>
-                </Card>
+               {/* Repository List */}
+               <div className="grid gap-4">
+                 {repositories?.map((repo) => (
+                   <Card key={repo.id}>
+                     <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                       <div>
+                         <CardTitle className="text-lg">{repo.name}</CardTitle>
+                         <CardDescription>
+                           {repo.description || 'No description'}
+                         </CardDescription>
+                         <div className="flex items-center gap-2 mt-2">
+                           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+                             repo.analysis_status === 'completed' 
+                               ? 'bg-green-100 text-green-800' 
+                               : repo.analysis_status === 'analyzing'
+                               ? 'bg-yellow-100 text-yellow-800'
+                               : repo.analysis_status === 'failed'
+                               ? 'bg-red-100 text-red-800'
+                               : 'bg-gray-100 text-gray-800'
+                           }`}>
+                             {repo.analysis_status === 'completed' && '✓ Documented'}
+                             {repo.analysis_status === 'analyzing' && '⏳ Analyzing'}
+                             {repo.analysis_status === 'failed' && '❌ Failed'}
+                             {repo.analysis_status === 'pending' && '⏸️ Pending'}
+                           </span>
+                           {repo.private && (
+                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">
+                               🔒 Private
+                             </span>
+                           )}
+                         </div>
+                       </div>
+                       <div className="flex gap-2">
+                         {repo.analysis_status === 'completed' && (
+                           <Link href={`/repositories/${repo.id}/docs`}>
+                             <Button variant="outline" size="sm">
+                               View Docs
+                             </Button>
+                           </Link>
+                         )}
+                         <Button 
+                           size="sm"
+                           disabled={repo.analysis_status === 'analyzing'}
+                           onClick={() => {
+                             // TODO: Trigger analysis
+                             console.log('Starting analysis for', repo.name)
+                           }}
+                         >
+                           {repo.analysis_status === 'analyzing' ? 'Analyzing...' : 'EXPLAIN'}
+                         </Button>
+                       </div>
+                     </CardHeader>
+                   </Card>
+                 ))}
+               </div>
 
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Stale PRs</CardTitle>
-                    <AlertCircle className="h-4 w-4 text-red-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">3</div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Open for more than 7 days
-                    </p>
-                  </CardContent>
-                </Card>
+               {/* Quick Stats */}
+               <div className="grid gap-4 md:grid-cols-3 mt-8">
+                 <Card>
+                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                     <CardTitle className="text-sm font-medium">Total Repositories</CardTitle>
+                     <GitBranch className="h-4 w-4 text-gray-500" />
+                   </CardHeader>
+                   <CardContent>
+                     <div className="text-2xl font-bold">{repositories?.length || 0}</div>
+                   </CardContent>
+                 </Card>
 
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Active Contributors</CardTitle>
-                    <Users className="h-4 w-4 text-gray-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">8</div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      In the last 30 days
-                    </p>
-                  </CardContent>
-                </Card>
+                 <Card>
+                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                     <CardTitle className="text-sm font-medium">Documented</CardTitle>
+                     <Users className="h-4 w-4 text-green-500" />
+                   </CardHeader>
+                   <CardContent>
+                     <div className="text-2xl font-bold">
+                       {repositories?.filter(r => r.analysis_status === 'completed').length || 0}
+                     </div>
+                   </CardContent>
+                 </Card>
 
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Open Issues</CardTitle>
-                    <GitBranch className="h-4 w-4 text-gray-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">24</div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Needs attention
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* AI Suggestions */}
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <Card className="lg:col-span-2">
-                  <CardHeader>
-                    <CardTitle>Recent Activity</CardTitle>
-                    <CardDescription>
-                      Latest updates from your repositories
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Activity timeline will be displayed here
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>AI Suggestions</CardTitle>
-                    <CardDescription>
-                      Powered by Mistral AI
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="rounded-lg border p-3">
-                        <p className="text-sm font-medium">Review PR #123</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          This PR has been open for 14 days without review
-                        </p>
-                      </div>
-                      <div className="rounded-lg border p-3">
-                        <p className="text-sm font-medium">Assign Issue #456</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          High-priority issue needs an assignee
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </>
-          )}
+                 <Card>
+                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                     <CardTitle className="text-sm font-medium">Pending Analysis</CardTitle>
+                     <AlertCircle className="h-4 w-4 text-yellow-500" />
+                   </CardHeader>
+                   <CardContent>
+                     <div className="text-2xl font-bold">
+                       {repositories?.filter(r => r.analysis_status === 'pending').length || 0}
+                     </div>
+                   </CardContent>
+                 </Card>
+               </div>
+             </>
+           )}
         </div>
       </main>
     </div>

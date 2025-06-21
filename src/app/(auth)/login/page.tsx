@@ -15,7 +15,7 @@ export default function LoginPage() {
       provider: 'github',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        scopes: 'read:user user:email read:org'
+        scopes: 'read:user user:email repo'
       }
     })
 
@@ -31,7 +31,7 @@ export default function LoginPage() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-3xl font-bold">Welcome to Lookas</CardTitle>
           <CardDescription>
-            Connect your GitHub account to get started with advanced repository analytics
+            Connect your GitHub account to generate AI-powered code documentation
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -45,7 +45,7 @@ export default function LoginPage() {
           </Button>
           <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
             By signing in, you agree to grant Lookas access to your GitHub repositories
-            for analytics purposes.
+            for code documentation generation.
           </p>
         </CardContent>
       </Card>

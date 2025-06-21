@@ -38,244 +38,156 @@ export interface Database {
           updated_at?: string
         }
       }
-      organizations: {
-        Row: {
-          id: string
-          github_id: number
-          login: string
-          name: string | null
-          avatar_url: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          github_id: number
-          login: string
-          name?: string | null
-          avatar_url?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          github_id?: number
-          login?: string
-          name?: string | null
-          avatar_url?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
       repositories: {
         Row: {
           id: string
           github_id: number
-          organization_id: string
+          user_id: string
           name: string
           full_name: string
           private: boolean
           description: string | null
           default_branch: string
+          github_url: string | null
+          clone_url: string | null
+          last_analyzed_at: string | null
+          analysis_status: 'pending' | 'analyzing' | 'completed' | 'failed'
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
           github_id: number
-          organization_id: string
+          user_id: string
           name: string
           full_name: string
           private?: boolean
           description?: string | null
           default_branch?: string
+          github_url?: string | null
+          clone_url?: string | null
+          last_analyzed_at?: string | null
+          analysis_status?: 'pending' | 'analyzing' | 'completed' | 'failed'
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           github_id?: number
-          organization_id?: string
+          user_id?: string
           name?: string
           full_name?: string
           private?: boolean
           description?: string | null
           default_branch?: string
+          github_url?: string | null
+          clone_url?: string | null
+          last_analyzed_at?: string | null
+          analysis_status?: 'pending' | 'analyzing' | 'completed' | 'failed'
           created_at?: string
           updated_at?: string
         }
       }
-      pull_requests: {
-        Row: {
-          id: string
-          github_id: number
-          repository_id: string
-          number: number
-          title: string
-          state: 'open' | 'closed' | 'merged'
-          author_username: string
-          created_at: string
-          updated_at: string
-          closed_at: string | null
-          merged_at: string | null
-          review_comments_count: number
-          commits_count: number
-          additions: number
-          deletions: number
-        }
-        Insert: {
-          id?: string
-          github_id: number
-          repository_id: string
-          number: number
-          title: string
-          state: 'open' | 'closed' | 'merged'
-          author_username: string
-          created_at: string
-          updated_at: string
-          closed_at?: string | null
-          merged_at?: string | null
-          review_comments_count?: number
-          commits_count?: number
-          additions?: number
-          deletions?: number
-        }
-        Update: {
-          id?: string
-          github_id?: number
-          repository_id?: string
-          number?: number
-          title?: string
-          state?: 'open' | 'closed' | 'merged'
-          author_username?: string
-          created_at?: string
-          updated_at?: string
-          closed_at?: string | null
-          merged_at?: string | null
-          review_comments_count?: number
-          commits_count?: number
-          additions?: number
-          deletions?: number
-        }
-      }
-      issues: {
-        Row: {
-          id: string
-          github_id: number
-          repository_id: string
-          number: number
-          title: string
-          state: 'open' | 'closed'
-          author_username: string
-          assignee_username: string | null
-          labels: string[]
-          created_at: string
-          updated_at: string
-          closed_at: string | null
-        }
-        Insert: {
-          id?: string
-          github_id: number
-          repository_id: string
-          number: number
-          title: string
-          state: 'open' | 'closed'
-          author_username: string
-          assignee_username?: string | null
-          labels?: string[]
-          created_at: string
-          updated_at: string
-          closed_at?: string | null
-        }
-        Update: {
-          id?: string
-          github_id?: number
-          repository_id?: string
-          number?: number
-          title?: string
-          state?: 'open' | 'closed'
-          author_username?: string
-          assignee_username?: string | null
-          labels?: string[]
-          created_at?: string
-          updated_at?: string
-          closed_at?: string | null
-        }
-      }
-      commits: {
+      documents: {
         Row: {
           id: string
           repository_id: string
-          sha: string
-          author_username: string
-          author_email: string | null
-          message: string
-          additions: number
-          deletions: number
-          committed_at: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          repository_id: string
-          sha: string
-          author_username: string
-          author_email?: string | null
-          message: string
-          additions?: number
-          deletions?: number
-          committed_at: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          repository_id?: string
-          sha?: string
-          author_username?: string
-          author_email?: string | null
-          message?: string
-          additions?: number
-          deletions?: number
-          committed_at?: string
-          created_at?: string
-        }
-      }
-      ai_suggestions: {
-        Row: {
-          id: string
-          repository_id: string
-          user_id: string
-          suggestion_type: string
+          document_path: string
           title: string
           content: string
+          document_type: 'file' | 'class' | 'function' | 'module' | 'overview'
+          file_path: string | null
+          line_start: number | null
+          line_end: number | null
           metadata: Json
-          is_applied: boolean
           created_at: string
-          expires_at: string
+          updated_at: string
         }
         Insert: {
           id?: string
           repository_id: string
-          user_id: string
-          suggestion_type: string
+          document_path: string
           title: string
           content: string
+          document_type: 'file' | 'class' | 'function' | 'module' | 'overview'
+          file_path?: string | null
+          line_start?: number | null
+          line_end?: number | null
           metadata?: Json
-          is_applied?: boolean
           created_at?: string
-          expires_at?: string
+          updated_at?: string
         }
         Update: {
           id?: string
           repository_id?: string
-          user_id?: string
-          suggestion_type?: string
+          document_path?: string
           title?: string
           content?: string
+          document_type?: 'file' | 'class' | 'function' | 'module' | 'overview'
+          file_path?: string | null
+          line_start?: number | null
+          line_end?: number | null
           metadata?: Json
-          is_applied?: boolean
           created_at?: string
-          expires_at?: string
+          updated_at?: string
+        }
+      }
+      document_links: {
+        Row: {
+          id: string
+          source_document_id: string
+          target_document_id: string
+          link_type: 'imports' | 'uses' | 'extends' | 'implements' | 'calls' | 'references'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          source_document_id: string
+          target_document_id: string
+          link_type: 'imports' | 'uses' | 'extends' | 'implements' | 'calls' | 'references'
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          source_document_id?: string
+          target_document_id?: string
+          link_type?: 'imports' | 'uses' | 'extends' | 'implements' | 'calls' | 'references'
+          created_at?: string
+        }
+      }
+      analysis_logs: {
+        Row: {
+          id: string
+          repository_id: string
+          analysis_type: 'full' | 'incremental'
+          status: 'pending' | 'in_progress' | 'completed' | 'failed'
+          started_at: string
+          completed_at: string | null
+          error_message: string | null
+          files_analyzed: number
+          documents_generated: number
+        }
+        Insert: {
+          id?: string
+          repository_id: string
+          analysis_type?: 'full' | 'incremental'
+          status?: 'pending' | 'in_progress' | 'completed' | 'failed'
+          started_at?: string
+          completed_at?: string | null
+          error_message?: string | null
+          files_analyzed?: number
+          documents_generated?: number
+        }
+        Update: {
+          id?: string
+          repository_id?: string
+          analysis_type?: 'full' | 'incremental'
+          status?: 'pending' | 'in_progress' | 'completed' | 'failed'
+          started_at?: string
+          completed_at?: string | null
+          error_message?: string | null
+          files_analyzed?: number
+          documents_generated?: number
         }
       }
     }
