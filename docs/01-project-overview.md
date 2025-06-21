@@ -56,37 +56,37 @@ Project name reason:
 
 ---
 
-### Technical Architecture
+### Technical Integration
 
-#### **Frontend**
-- **Next.js 14** (App Router, React Server Components)
-- **TypeScript** (strict mode, comprehensive type safety)
-- **Tailwind CSS + shadcn/ui** (consistent design system)
-- **React Flow** or **Cytoscape.js** (interactive graph visualization)
-- **Monaco Editor** (code syntax highlighting and editing)
-
-#### **Backend/Database**
-- **Next.js API Routes** (serverless functions)
-- **Supabase** (PostgreSQL with real-time subscriptions)
-- **Prisma** (type-safe database operations, schema management)
-- **Redis** (caching for expensive AI operations)
-
-#### **AI & Processing**
-- **Mistral AI** (code analysis, documentation generation, Q&A)
-- **Tree-sitter** (robust code parsing across multiple languages)
-- **GitHub API** (repository access, webhook handling)
-- **Background job processing** (Upstash QStash or similar)
-
-#### **Package Management & Deployment**
-- **pnpm** (monorepo support, efficient dependency management)
-- **Vercel** (seamless Next.js deployment, edge functions)
-- **GitHub Actions** (CI/CD, automated documentation updates)
+**Backend Integration:**
+The existing backend infrastructure serves as the ultimate source of truth for all system operations. The AI documentation system will adapt to and work within the established backend architecture, utilizing existing APIs, data models, and processing pipelines. All documentation generation, storage, and retrieval operations will conform to the backend's specifications and capabilities.
 
 ---
 
 ### AI Prompt Architecture
 
-#### **Primary Documentation Generation Prompt**
+#### **Backend Adaptation Prompt**
+```
+You are integrating with an existing backend system that serves as the ultimate source of truth. 
+
+CRITICAL: Analyze the backend's current architecture, data models, API patterns, and processing capabilities. Adapt all AI functionality to work within these existing constraints and specifications.
+
+BACKEND ANALYSIS REQUIRED:
+1. Examine existing database schema and data relationships
+2. Identify current API endpoints and data flow patterns  
+3. Understand authentication/authorization mechanisms
+4. Map existing processing pipelines and job handling
+5. Determine storage strategies and caching approaches
+
+ADAPTATION RULES:
+- Never assume technical implementations - discover them from the backend
+- Conform to existing naming conventions and architectural patterns
+- Utilize existing infrastructure rather than proposing new systems
+- Respect current data models and extend them appropriately
+- Follow established error handling and logging practices
+
+Your role is to seamlessly integrate AI documentation capabilities into the existing system, not to redesign it.
+```
 ```
 You are an expert software architect and technical writer. Analyze the provided code changes and generate comprehensive, beginner-friendly documentation.
 
@@ -145,40 +145,6 @@ Generate a progressive learning sequence:
 
 Each step should build on previous knowledge and include estimated time investment.
 ```
-
----
-
-### Architecture Improvements & Suggestions
-
-#### **Smart Caching Strategy**
-- Cache AI-generated documentation with invalidation based on file change detection
-- Use content-addressed storage for code snippets to avoid regenerating identical explanations
-- Implement incremental updates rather than full re-processing
-
-#### **Multi-Language Support**
-- Extend beyond typical web stack to support Python, Java, Go, Rust, etc.
-- Language-specific documentation templates and best practices
-- Framework-aware analysis (React patterns, Django conventions, etc.)
-
-#### **Team Collaboration Features**
-- Annotation system for developers to add context or corrections to AI-generated docs
-- Discussion threads on specific documentation sections
-- Knowledge validation workflow where senior devs can approve/edit AI suggestions
-
-#### **Integration Ecosystem**
-- VS Code extension for inline documentation viewing
-- Slack/Discord bot for quick codebase Q&A
-- Jira/Linear integration for linking tickets to relevant documentation
-
-#### **Analytics & Insights**
-- Track which documentation is most accessed/useful
-- Identify knowledge gaps across the team
-- Measure onboarding effectiveness and time-to-productivity
-
-#### **Advanced Graph Features**
-- Filter graph by technology stack, feature area, or developer
-- Time-based visualization showing how architecture evolved
-- Impact analysis for proposed changes
 
 ---
 
