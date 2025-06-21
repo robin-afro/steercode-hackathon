@@ -128,10 +128,12 @@ const dummyDocs: DocumentNode[] = [
 ]
 
 interface DocumentationBrowserProps {
+  selectedDocId?: string | null
   onDocumentSelect?: (document: DocumentNode) => void
+  onGenerateExplanation?: (documentId: string) => void
 }
 
-export function DocumentationBrowser({ onDocumentSelect }: DocumentationBrowserProps) {
+export function DocumentationBrowser({ selectedDocId, onDocumentSelect, onGenerateExplanation }: DocumentationBrowserProps) {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['backend', 'frontend']))
   const [selectedDocument, setSelectedDocument] = useState<DocumentNode | null>(null)
   const [, setSearchQuery] = useState('')

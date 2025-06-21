@@ -8,13 +8,21 @@ export interface BadgeProps
 }
 
 const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
-  ({ className, variant = 'default', size = 'default', ...props }, ref) => {
+  ({ className, variant = 'default', size = 'default', style, ...props }, ref) => {
     const variants = {
-      default: 'bg-gray-900 text-white dark:bg-gray-50 dark:text-gray-900',
-      secondary: 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-50',
-      outline: 'border border-gray-300 bg-transparent text-gray-900 dark:border-gray-700 dark:text-gray-50',
-      destructive: 'bg-red-100 text-red-900 dark:bg-red-900 dark:text-red-50',
-      success: 'bg-green-100 text-green-900 dark:bg-green-900 dark:text-green-50',
+      default: 'text-white',
+      secondary: '',
+      outline: 'border bg-transparent',
+      destructive: '',
+      success: '',
+    }
+
+    const variantStyles = {
+      default: { backgroundColor: 'var(--color-primary)', color: 'white' },
+      secondary: { backgroundColor: 'var(--overlay-10)', color: 'var(--color-text-primary)' },
+      outline: { borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' },
+      destructive: { backgroundColor: 'var(--color-destructive)', color: 'white' },
+      success: { backgroundColor: 'var(--color-success)', color: 'white' },
     }
 
     const sizes = {
@@ -27,11 +35,16 @@ const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
       <div
         ref={ref}
         className={cn(
-          'inline-flex items-center rounded-full font-medium transition-colors',
+          'inline-flex items-center font-medium transition-colors',
           variants[variant],
           sizes[size],
           className
         )}
+        style={{
+          borderRadius: 'var(--radius-full)',
+          ...variantStyles[variant],
+          ...style
+        }}
         {...props}
       />
     )

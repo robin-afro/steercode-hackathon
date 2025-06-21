@@ -185,8 +185,8 @@ export function OnboardingPaths() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Smart Onboarding Paths</h2>
-        <p className="text-gray-500 dark:text-gray-400">
+        <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Smart Onboarding Paths</h2>
+        <p style={{ color: 'var(--color-text-secondary)' }}>
           AI-generated personalized learning paths based on your role and experience level
         </p>
       </div>

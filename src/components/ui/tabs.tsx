@@ -4,7 +4,9 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 interface TabsProps {
-  defaultValue: string
+  defaultValue?: string
+  value?: string
+  onValueChange?: (value: string) => void
   className?: string
   children: React.ReactNode
 }
@@ -17,8 +19,16 @@ interface TabsContextType {
 const TabsContext = React.createContext<TabsContextType | undefined>(undefined)
 
 const Tabs = React.forwardRef<HTMLDivElement, TabsProps>(
-  ({ defaultValue, className, children, ...props }, ref) => {
-    const [activeTab, setActiveTab] = React.useState(defaultValue)
+  ({ defaultValue, value, onValueChange, className, children, ...props }, ref) => {
+    const [internalActiveTab, setInternalActiveTab] = React.useState(defaultValue || '')
+    const activeTab = value !== undefined ? value : internalActiveTab
+    const setActiveTab = (newTab: string) => {
+      if (onValueChange) {
+        onValueChange(newTab)
+      } else {
+        setInternalActiveTab(newTab)
+      }
+    }
 
     return (
       <TabsContext.Provider value={{ activeTab, setActiveTab }}>

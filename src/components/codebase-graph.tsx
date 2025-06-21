@@ -89,13 +89,19 @@ const getTypeColor = (type: string) => {
   }
 }
 
-export function CodebaseGraph() {
+interface CodebaseGraphProps {
+  selectedNode?: string | null
+  onNodeSelect?: (nodeId: string) => void
+}
+
+export function CodebaseGraph({ selectedNode: selectedNodeId, onNodeSelect }: CodebaseGraphProps) {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null)
   const [showDependencies, setShowDependencies] = useState(true)
   const [showDependents, setShowDependents] = useState(true)
 
   const handleNodeClick = (node: GraphNode) => {
     setSelectedNode(node)
+    onNodeSelect?.(node.id)
   }
 
   const getRelatedNodes = (nodeId: string) => {

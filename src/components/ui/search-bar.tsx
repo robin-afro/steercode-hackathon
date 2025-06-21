@@ -7,11 +7,12 @@ import { cn } from "@/lib/utils"
 interface SearchBarProps extends React.InputHTMLAttributes<HTMLInputElement> {
   onSearch?: (query: string) => void
   isLoading?: boolean
+  defaultValue?: string
 }
 
 const SearchBar = React.forwardRef<HTMLInputElement, SearchBarProps>(
-  ({ className, onSearch, isLoading = false, ...props }, ref) => {
-    const [query, setQuery] = React.useState("")
+  ({ className, onSearch, isLoading = false, defaultValue = "", ...props }, ref) => {
+    const [query, setQuery] = React.useState(defaultValue)
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault()

@@ -39,36 +39,41 @@ export default async function HomePage() {
   ]
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-screen" style={{ backgroundColor: 'var(--color-canvas)' }}>
       {/* Sidebar */}
-      <aside className="w-64 border-r border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
+              <aside className="w-64 border-r" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
         <div className="flex h-full flex-col">
-          <div className="flex h-16 items-center justify-center border-b border-gray-200 dark:border-gray-800">
-            <h1 className="text-2xl font-bold">Lookas</h1>
-          </div>
+                      <div className="flex h-16 items-center justify-center border-b" style={{ borderColor: 'var(--color-border)' }}>
+              <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Lookas</h1>
+            </div>
           
           <nav className="flex-1 space-y-1 p-4">
             {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-50"
-              >
+                              <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors hover:opacity-80"
+                  style={{ 
+                    borderRadius: 'var(--radius-md)', 
+                    color: 'var(--color-text-secondary)',
+                    backgroundColor: 'transparent' 
+                  }}
+                >
                 <item.icon className="h-4 w-4" />
                 {item.label}
               </Link>
             ))}
           </nav>
 
-          <div className="border-t border-gray-200 p-4 dark:border-gray-800">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-700" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate dark:text-gray-50">
-                  {user.email}
-                </p>
+                      <div className="border-t p-4" style={{ borderColor: 'var(--color-border)' }}>
+                          <div className="flex items-center gap-3 mb-3">
+                <div className="h-8 w-8 rounded-full" style={{ backgroundColor: 'var(--overlay-20)' }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>
+                    {user.email}
+                  </p>
+                </div>
               </div>
-            </div>
             <form action="/api/auth/logout" method="post">
               <Button variant="outline" size="sm" className="w-full" type="submit">
                 <LogOut className="mr-2 h-4 w-4" />
@@ -85,8 +90,8 @@ export default async function HomePage() {
            {!hasRepositories ? (
              <>
                <div className="mb-8">
-                 <h1 className="text-3xl font-bold tracking-tight">Welcome to Lookas</h1>
-                 <p className="text-gray-500 dark:text-gray-400 mt-2">
+                 <h1 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--color-text-primary)' }}>Welcome to Lookas</h1>
+                 <p className="mt-2" style={{ color: 'var(--color-text-secondary)' }}>
                    Let's get started by connecting your GitHub repositories
                  </p>
                </div>
@@ -111,8 +116,8 @@ export default async function HomePage() {
            ) : (
                          <>
                <div className="mb-8">
-                 <h1 className="text-3xl font-bold tracking-tight">Your Repositories</h1>
-                 <p className="text-gray-500 dark:text-gray-400 mt-2">
+                 <h1 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--color-text-primary)' }}>Your Repositories</h1>
+                 <p className="mt-2" style={{ color: 'var(--color-text-secondary)' }}>
                    Connected repositories and their documentation status
                  </p>
                </div>
@@ -128,22 +133,27 @@ export default async function HomePage() {
                            {repo.description || 'No description'}
                          </CardDescription>
                          <div className="flex items-center gap-2 mt-2">
-                           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
-                             repo.analysis_status === 'completed' 
-                               ? 'bg-green-100 text-green-800' 
-                               : repo.analysis_status === 'analyzing'
-                               ? 'bg-yellow-100 text-yellow-800'
-                               : repo.analysis_status === 'failed'
-                               ? 'bg-red-100 text-red-800'
-                               : 'bg-gray-100 text-gray-800'
-                           }`}>
+                           <span 
+                             className="inline-flex items-center px-2 py-1 rounded-full text-xs"
+                             style={{
+                               backgroundColor: repo.analysis_status === 'completed' ? 'var(--color-success)' :
+                                              repo.analysis_status === 'analyzing' ? 'var(--color-warning)' :
+                                              repo.analysis_status === 'failed' ? 'var(--color-destructive)' :
+                                              'var(--overlay-20)',
+                               color: 'var(--color-foreground)',
+                               opacity: 0.9
+                             }}
+                           >
                              {repo.analysis_status === 'completed' && '✓ Documented'}
                              {repo.analysis_status === 'analyzing' && '⏳ Analyzing'}
                              {repo.analysis_status === 'failed' && '❌ Failed'}
                              {repo.analysis_status === 'pending' && '⏸️ Pending'}
                            </span>
                            {repo.private && (
-                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">
+                             <span 
+                               className="inline-flex items-center px-2 py-1 rounded-full text-xs"
+                               style={{ backgroundColor: 'var(--overlay-20)', color: 'var(--color-text-primary)' }}
+                             >
                                🔒 Private
                              </span>
                            )}
@@ -176,7 +186,7 @@ export default async function HomePage() {
                  <Card>
                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                      <CardTitle className="text-sm font-medium">Total Repositories</CardTitle>
-                     <GitBranch className="h-4 w-4 text-gray-500" />
+                     <GitBranch className="h-4 w-4" style={{ color: 'var(--color-text-secondary)' }} />
                    </CardHeader>
                    <CardContent>
                      <div className="text-2xl font-bold">{repositories?.length || 0}</div>
@@ -186,7 +196,7 @@ export default async function HomePage() {
                  <Card>
                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                      <CardTitle className="text-sm font-medium">Documented</CardTitle>
-                     <Users className="h-4 w-4 text-green-500" />
+                     <Users className="h-4 w-4" style={{ color: 'var(--color-success)' }} />
                    </CardHeader>
                    <CardContent>
                      <div className="text-2xl font-bold">
@@ -198,7 +208,7 @@ export default async function HomePage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Pending Analysis</CardTitle>
-                    <AlertCircle className="h-4 w-4 text-yellow-500" />
+                    <AlertCircle className="h-4 w-4" style={{ color: 'var(--color-warning)' }} />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
@@ -221,14 +231,14 @@ export default async function HomePage() {
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <h4 className="text-sm font-medium">Repositories Analyzed</h4>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                          <h4 className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>Repositories Analyzed</h4>
+                          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                             {repositories?.filter(r => r.analysis_status === 'completed').length || 0} repositories have been documented
                           </p>
                         </div>
                         <div className="space-y-2">
-                          <h4 className="text-sm font-medium">Analysis Status</h4>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                          <h4 className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>Analysis Status</h4>
+                          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                             {repositories?.filter(r => r.analysis_status === 'analyzing').length || 0} currently analyzing
                           </p>
                         </div>

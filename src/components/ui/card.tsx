@@ -4,13 +4,17 @@ import { cn } from "@/lib/utils"
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+>(({ className, style, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn(
-      "rounded-lg border border-gray-200 bg-white text-gray-950 shadow-sm dark:border-gray-800 dark:bg-gray-950 dark:text-gray-50",
-      className
-    )}
+    className={cn("border shadow-sm", className)}
+    style={{
+      borderRadius: 'var(--radius-lg)',
+      borderColor: 'var(--color-border)',
+      backgroundColor: 'var(--color-surface)',
+      color: 'var(--color-text-primary)',
+      ...style
+    }}
     {...props}
   />
 ))
