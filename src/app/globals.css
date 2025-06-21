@@ -200,6 +200,22 @@ hr,
 }
 
 /* Enhanced transitions for theme toggle button */
+
+/* Search input placeholder styling */
+input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 0.7;
+}
+
+input:focus::placeholder {
+  opacity: 0.5;
+}
+
+/* Focus ring styling for inputs */
+input:focus-visible {
+  ring-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
 [data-theme-toggle] {
   transition: 
     background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),

@@ -11,7 +11,7 @@ interface SearchBarProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 const SearchBar = React.forwardRef<HTMLInputElement, SearchBarProps>(
-  ({ className, onSearch, isLoading = false, defaultValue = "", ...props }, ref) => {
+  ({ className, onSearch, isLoading = false, defaultValue = "", style, ...props }, ref) => {
     const [query, setQuery] = React.useState(defaultValue)
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -24,20 +24,32 @@ const SearchBar = React.forwardRef<HTMLInputElement, SearchBarProps>(
     return (
       <form onSubmit={handleSubmit} className="relative">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Search 
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" 
+            style={{ color: 'var(--color-text-secondary)' }}
+          />
           <input
             ref={ref}
             className={cn(
-              "flex h-10 w-full rounded-md border border-gray-300 bg-white pl-10 pr-10 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:ring-offset-gray-950 dark:placeholder:text-gray-400 dark:focus-visible:ring-gray-300",
+              "flex h-10 w-full rounded-md border pl-10 pr-10 py-2 text-sm ring-offset-2 file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
               className
             )}
+            style={{
+              backgroundColor: 'var(--color-surface)',
+              borderColor: 'var(--color-border)',
+              color: 'var(--color-text-primary)',
+              ...style
+            }}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Ask about the codebase... (e.g., 'How does user authentication work?')"
             {...props}
           />
           {isLoading && (
-            <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-gray-400" />
+            <Loader2 
+              className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin" 
+              style={{ color: 'var(--color-text-secondary)' }}
+            />
           )}
         </div>
       </form>
