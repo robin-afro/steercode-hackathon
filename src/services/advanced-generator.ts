@@ -423,32 +423,28 @@ export class AdvancedGenerator {
         if (result.success && result.document) {
           console.log(`      ✅ AI generation successful (${result.metrics.tokensOutput} tokens, $${result.metrics.costEstimated?.toFixed(4) || '0.0000'})`)
           
-          // Delete existing document if it exists (for clean overwrite)
-          if (existingDoc) {
-            console.log(`      🗑️  Removing existing document...`)
-            await supabase
-              .from('documents')
-              .delete()
-              .eq('id', existingDoc.id)
+          // Use upsert to handle both new and existing documents
+          const documentData = {
+            repository_id: repositoryId,
+            document_path: workItem.docPath,
+            title: result.document.title,
+            content: result.document.content,
+            document_type: workItem.documentType,
+            summary: result.document.summary,
+            component_ids: workItem.componentIds,
+            metadata: {
+              ...workItem.metadata,
+              generated_at: new Date().toISOString(),
+              session_id: sessionId,
+              overwritten: !!existingDoc
+            }
           }
 
-          // Save new document to database
           const { data: savedDoc, error: saveError } = await supabase
             .from('documents')
-            .insert({
-              repository_id: repositoryId,
-              document_path: workItem.docPath,
-              title: result.document.title,
-              content: result.document.content,
-              document_type: workItem.documentType,
-              summary: result.document.summary,
-              component_ids: workItem.componentIds,
-              metadata: {
-                ...workItem.metadata,
-                generated_at: new Date().toISOString(),
-                session_id: sessionId,
-                overwritten: !!existingDoc
-              }
+            .upsert(documentData, {
+              onConflict: 'repository_id,document_path',
+              ignoreDuplicates: false
             })
             .select()
             .single()
@@ -456,7 +452,11 @@ export class AdvancedGenerator {
           if (saveError) {
             console.error(`      ❌ Error saving document:`, saveError)
           } else if (savedDoc) {
-            console.log(`      💾 Document saved successfully: "${savedDoc.title}"`)
+            if (existingDoc) {
+              console.log(`      🔄 Document overwritten successfully: "${savedDoc.title}"`)
+            } else {
+              console.log(`      💾 New document saved successfully: "${savedDoc.title}"`)
+            }
             
             // Save generation metrics
             await this.docGenerator.saveGenerationMetrics(
@@ -522,7 +522,13 @@ export class AdvancedGenerator {
   ): Promise<void> {
     const supabase = await createClient()
 
-    // Find target document IDs
+    // First, remove any existing links from this document to avoid conflicts
+    await supabase
+      .from('document_links')
+      .delete()
+      .eq('source_document_id', sourceDocId)
+
+    // Find target document IDs and create new links
     const linkRecords = []
     
     for (const link of links) {
@@ -543,7 +549,10 @@ export class AdvancedGenerator {
     }
 
     if (linkRecords.length > 0) {
-      await supabase.from('document_links').upsert(linkRecords)
+      const { error } = await supabase.from('document_links').insert(linkRecords)
+      if (error) {
+        console.error(`      ⚠️  Error saving document links:`, error)
+      }
     }
   }
 
