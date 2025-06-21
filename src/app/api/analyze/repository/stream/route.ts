@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest } from 'next/server'
-import { AdvancedGenerator } from '@/services/advanced-generator'
+import { AdvancedGenerator, Logger } from '@/services/advanced-generator'
 
 export async function POST(request: NextRequest) {
   const { repositoryId } = await request.json()
@@ -60,43 +60,34 @@ export async function POST(request: NextRequest) {
             sessionId: null // Will be set when generation starts
           })
 
-          // Create a streaming generator that emits events
+          // Create a streaming logger that sends events instead of console override
+          const streamLogger: Logger = {
+            log: (...args: any[]) => {
+              const message = args.join(' ')
+              sendEvent('log', { 
+                level: 'info', 
+                message,
+                timestamp: new Date().toISOString()
+              })
+            },
+            error: (...args: any[]) => {
+              const message = args.join(' ')
+              sendEvent('log', { 
+                level: 'error', 
+                message,
+                timestamp: new Date().toISOString()
+              })
+            }
+          }
+
+          // Create generator and run with dedicated logger
           const generator = new AdvancedGenerator()
-          
-          // Override console.log to capture and stream logs
-          const originalConsoleLog = console.log
-          const originalConsoleError = console.error
-          
-          console.log = (...args: any[]) => {
-            const message = args.join(' ')
-            sendEvent('log', { 
-              level: 'info', 
-              message,
-              timestamp: new Date().toISOString()
-            })
-            originalConsoleLog(...args)
-          }
-
-          console.error = (...args: any[]) => {
-            const message = args.join(' ')
-            sendEvent('log', { 
-              level: 'error', 
-              message,
-              timestamp: new Date().toISOString()
-            })
-            originalConsoleError(...args)
-          }
-
-          // Start generation
           const result = await generator.generateDocumentation(
             repositoryId,
             provider_token,
-            'full'
+            'full',
+            streamLogger
           )
-
-          // Restore original console methods
-          console.log = originalConsoleLog
-          console.error = originalConsoleError
 
           if (result.success) {
             sendEvent('complete', {

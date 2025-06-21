@@ -103,25 +103,9 @@ export default function SettingsPage() {
     }
   }
 
-  const analyzeRepository = async (repoId: string) => {
-    try {
-      const response = await fetch('/api/analyze/repository', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ repositoryId: repoId })
-      })
-      
-      if (response.ok) {
-        // Refresh the repository list
-        await loadRepositories()
-        success('Analysis Started', 'Repository analysis has been initiated successfully.')
-      } else {
-        error('Analysis Failed', 'Failed to start repository analysis. Please try again.')
-      }
-    } catch (err) {
-      console.error('Error analyzing repository:', err)
-      error('Analysis Error', 'An unexpected error occurred while starting the analysis.')
-    }
+  const analyzeRepository = (repoId: string) => {
+    // Redirect to the streaming generation page
+    window.location.href = `/repositories/${repoId}/generate`
   }
 
   return (
