@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { SearchBar } from '@/components/ui/search-bar'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { 
   GitBranch, 
   Users, 
@@ -164,6 +165,7 @@ export default function HomePage() {
                   {user?.email}
                 </p>
               </div>
+              <ThemeToggle />
             </div>
             <Button variant="outline" size="sm" className="w-full" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />

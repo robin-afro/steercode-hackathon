@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { Github, Plus, Trash2, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 
@@ -130,6 +131,13 @@ export default function SettingsPage() {
               Settings
             </Link>
           </nav>
+          
+          <div className="border-t border-gray-200 p-4 dark:border-gray-800">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Theme</span>
+              <ThemeToggle />
+            </div>
+          </div>
         </div>
       </aside>
 

@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { ArrowLeft, Book, File, Folder, Home, Settings, Search, ChevronRight, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -410,7 +411,7 @@ export default function RepositoryDocsPage() {
 
           {/* Navigation Links */}
           <div className="border-t border-gray-200 p-4 dark:border-gray-800">
-            <div className="space-y-1">
+            <div className="space-y-1 mb-4">
               <Link href="/" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-50">
                 <Home className="h-4 w-4" />
                 Dashboard
@@ -419,6 +420,11 @@ export default function RepositoryDocsPage() {
                 <Settings className="h-4 w-4" />
                 Settings
               </Link>
+            </div>
+            
+            <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-800">
+              <span className="text-sm text-gray-600 dark:text-gray-400">Theme</span>
+              <ThemeToggle />
             </div>
           </div>
         </div>
