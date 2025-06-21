@@ -29,6 +29,7 @@ export function ThemeToggle() {
           setTheme(themes[nextIndex].value)
         }}
         title={`Current theme: ${currentTheme.label}. Click to switch.`}
+        data-theme-toggle
       >
         <CurrentIcon className="h-4 w-4" />
         <span className="sr-only">Toggle theme</span>
