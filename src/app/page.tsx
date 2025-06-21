@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { GitPullRequest, GitBranch, Users, AlertCircle, Plus, Home, Settings, LogOut, BarChart } from 'lucide-react'
+import { GitPullRequest, GitBranch, Users, AlertCircle, Plus, Home, Settings, LogOut, BarChart, BookOpen } from 'lucide-react'
 import Link from 'next/link'
 
 export default async function HomePage() {
@@ -35,6 +35,7 @@ export default async function HomePage() {
 
   const navItems = [
     { href: '/', icon: Home, label: 'Dashboard' },
+    { href: '/documentation', icon: BookOpen, label: 'Documentation' },
     { href: '/repositories', icon: GitBranch, label: 'Repositories' },
     { href: '/pull-requests', icon: GitPullRequest, label: 'Pull Requests' },
     { href: '/contributors', icon: Users, label: 'Contributors' },
@@ -201,20 +202,85 @@ export default async function HomePage() {
                    </CardContent>
                  </Card>
 
-                 <Card>
-                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                     <CardTitle className="text-sm font-medium">Pending Analysis</CardTitle>
-                     <AlertCircle className="h-4 w-4 text-yellow-500" />
-                   </CardHeader>
-                   <CardContent>
-                     <div className="text-2xl font-bold">
-                       {repositories?.filter(r => r.analysis_status === 'pending').length || 0}
-                     </div>
-                   </CardContent>
-                 </Card>
-               </div>
-             </>
-           )}
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Open Issues</CardTitle>
+                    <GitBranch className="h-4 w-4 text-gray-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">24</div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Needs attention
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* AI-Powered Documentation Section */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <Card className="lg:col-span-2">
+                  <CardHeader>
+                    <CardTitle>AI-Powered Documentation Platform</CardTitle>
+                    <CardDescription>
+                      Lookas automatically generates and maintains living documentation from your code
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium">Auto-Generated Docs</h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            156 documents automatically updated with code changes
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium">Smart Cross-References</h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            89 intelligent connections between components
+                          </p>
+                        </div>
+                      </div>
+                      <Link href="/documentation">
+                        <Button size="sm" className="w-full">
+                          <BookOpen className="mr-2 h-4 w-4" />
+                          Explore Documentation
+                        </Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Learning Progress</CardTitle>
+                    <CardDescription>
+                      Personalized onboarding paths
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="rounded-lg border p-3">
+                        <p className="text-sm font-medium">Frontend Basics</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          3 of 8 steps completed
+                        </p>
+                        <div className="mt-2 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div className="h-full bg-green-500 rounded-full w-1/3" />
+                        </div>
+                      </div>
+                                              <div className="rounded-lg border p-3">
+                          <p className="text-sm font-medium">Backend Deep Dive</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            1 of 10 steps completed
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          )}
         </div>
       </main>
     </div>
