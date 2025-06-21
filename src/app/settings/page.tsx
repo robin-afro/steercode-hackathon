@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Sidebar } from '@/components/sidebar'
+import { useToast } from '@/components/ui/toast-provider'
 import { Github, Plus, Trash2, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 
@@ -15,6 +16,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [loadingGithub, setLoadingGithub] = useState(false)
   const supabase = createClient()
+  const { success, error, warning } = useToast()
 
   useEffect(() => {
     loadRepositories()
@@ -64,14 +66,17 @@ export default function SettingsPage() {
         
         // Handle scope issues specifically
         if (errorData.code === 'INSUFFICIENT_SCOPE') {
-          alert('Your GitHub authentication doesn\'t include access to private repositories. Please sign out and sign back in to grant the required permissions.')
+          warning(
+            'Insufficient Permissions', 
+            'Your GitHub authentication doesn\'t include access to private repositories. Please sign out and sign back in to grant the required permissions.'
+          )
         } else {
-          alert(`Error: ${errorData.error || 'Failed to load repositories'}`)
+          error('Failed to Load Repositories', errorData.error || 'An unexpected error occurred')
         }
       }
-    } catch (error) {
-      console.error('Error loading GitHub repositories:', error)
-      alert('Error loading repositories. Please try again.')
+    } catch (err) {
+      console.error('Error loading GitHub repositories:', err)
+      error('Connection Error', 'Error loading repositories. Please try again.')
     }
     setLoadingGithub(false)
   }
@@ -87,13 +92,14 @@ export default function SettingsPage() {
       if (response.ok) {
         await loadRepositories()
         await loadAvailableRepositories() // Refresh to remove imported repo
-        console.log('Repository imported successfully')
+        success('Repository Imported', 'Repository has been successfully imported and is ready for analysis.')
       } else {
-        const error = await response.json()
-        alert(`Error: ${error.error}`)
+        const errorData = await response.json()
+        error('Import Failed', errorData.error || 'Failed to import repository')
       }
-    } catch (error) {
-      console.error('Error importing repository:', error)
+    } catch (err) {
+      console.error('Error importing repository:', err)
+      error('Import Error', 'An unexpected error occurred while importing the repository.')
     }
   }
 
@@ -108,10 +114,13 @@ export default function SettingsPage() {
       if (response.ok) {
         // Refresh the repository list
         await loadRepositories()
-        console.log('Analysis initiated successfully')
+        success('Analysis Started', 'Repository analysis has been initiated successfully.')
+      } else {
+        error('Analysis Failed', 'Failed to start repository analysis. Please try again.')
       }
-    } catch (error) {
-      console.error('Error analyzing repository:', error)
+    } catch (err) {
+      console.error('Error analyzing repository:', err)
+      error('Analysis Error', 'An unexpected error occurred while starting the analysis.')
     }
   }
 

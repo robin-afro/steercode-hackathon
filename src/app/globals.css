@@ -216,6 +216,30 @@ input:focus-visible {
   ring-color: var(--color-primary) !important;
   border-color: var(--color-primary) !important;
 }
+
+/* Toast animations */
+@keyframes slide-in-from-right-full {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-in {
+  animation-fill-mode: both;
+}
+
+.slide-in-from-right-full {
+  animation-name: slide-in-from-right-full;
+}
+
+.duration-300 {
+  animation-duration: 300ms;
+}
 [data-theme-toggle] {
   transition: 
     background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),

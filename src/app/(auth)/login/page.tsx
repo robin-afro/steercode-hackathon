@@ -4,12 +4,14 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { useToast } from '@/components/ui/toast-provider'
 import { Github } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
+  const { error: showError } = useToast()
 
   const handleGitHubLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
@@ -22,7 +24,7 @@ export default function LoginPage() {
 
     if (error) {
       console.error('Error logging in with GitHub:', error)
-      alert(`Authentication error: ${error.message}`)
+      showError('Authentication Failed', error.message || 'Unable to connect to GitHub. Please try again.')
     }
   }
 
