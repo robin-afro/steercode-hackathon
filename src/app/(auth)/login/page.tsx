@@ -32,10 +32,10 @@ export default function LoginPage() {
         <ThemeToggle />
       </div>
       
-      <Card className="w-full max-w-md" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+      <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-3xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Welcome to Lookas</CardTitle>
-          <CardDescription style={{ color: 'var(--color-text-secondary)' }}>
+          <CardTitle className="text-3xl font-bold">Welcome to Lookas</CardTitle>
+          <CardDescription>
             Connect your GitHub account to generate AI-powered code documentation
           </CardDescription>
         </CardHeader>

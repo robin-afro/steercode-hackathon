@@ -10,7 +10,7 @@ export interface BadgeProps
 const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
   ({ className, variant = 'default', size = 'default', style, ...props }, ref) => {
     const variants = {
-      default: 'text-white',
+      default: '',
       secondary: '',
       outline: 'border bg-transparent',
       destructive: '',

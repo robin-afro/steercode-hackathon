@@ -8,13 +8,45 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'default', size = 'default', ...props }, ref) => {
+  ({ className, variant = 'default', size = 'default', style, ...props }, ref) => {
     const variants = {
-      default: 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700',
-      primary: 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700',
-      outline: 'border border-gray-300 bg-transparent hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800',
-      ghost: 'hover:bg-gray-100 dark:hover:bg-gray-800',
-      destructive: 'bg-red-600 text-white hover:bg-red-700 dark:bg-red-900 dark:hover:bg-red-800',
+      default: 'hover:opacity-90',
+      primary: 'hover:opacity-90',
+      outline: 'border hover:opacity-90',
+      ghost: 'hover:opacity-90',
+      destructive: 'hover:opacity-90',
+    }
+
+    const getVariantStyles = (variant: string) => {
+      switch (variant) {
+        case 'primary':
+          return {
+            backgroundColor: 'var(--color-primary)',
+            color: 'white',
+            borderColor: 'var(--color-primary)',
+          }
+        case 'outline':
+          return {
+            backgroundColor: 'transparent',
+            color: 'var(--color-text-primary)',
+            borderColor: 'var(--color-border)',
+          }
+        case 'ghost':
+          return {
+            backgroundColor: 'transparent',
+            color: 'var(--color-text-primary)',
+          }
+        case 'destructive':
+          return {
+            backgroundColor: 'var(--color-destructive)',
+            color: 'white',
+          }
+        default:
+          return {
+            backgroundColor: 'var(--color-text-primary)',
+            color: 'var(--color-canvas)',
+          }
+      }
     }
 
     const sizes = {
@@ -27,11 +59,15 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         className={cn(
-          'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:focus-visible:ring-gray-300',
+          'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
           variants[variant],
           sizes[size],
           className
         )}
+        style={{
+          ...getVariantStyles(variant),
+          ...style
+        }}
         ref={ref}
         {...props}
       />

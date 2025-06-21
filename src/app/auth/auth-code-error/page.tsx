@@ -6,11 +6,11 @@ import Link from 'next/link'
 export default function AuthCodeErrorPage() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12" style={{ backgroundColor: 'var(--color-canvas)' }}>
-      <Card className="w-full max-w-md" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+      <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <AlertTriangle className="mx-auto h-12 w-12" style={{ color: 'var(--color-destructive)' }} />
-          <CardTitle className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Authentication Error</CardTitle>
-          <CardDescription style={{ color: 'var(--color-text-secondary)' }}>
+          <CardTitle className="text-2xl font-bold">Authentication Error</CardTitle>
+          <CardDescription>
             There was a problem connecting your GitHub account
           </CardDescription>
         </CardHeader>

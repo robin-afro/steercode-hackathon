@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { SearchBar } from '@/components/ui/search-bar'
-import { ThemeToggle } from '@/components/theme-toggle'
+import { Sidebar } from '@/components/sidebar'
 import { 
   GitBranch, 
   Users, 
@@ -94,12 +94,6 @@ export default function HomePage() {
     console.log('Search query:', query)
   }, [])
 
-  const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-canvas)' }}>
@@ -122,58 +116,10 @@ export default function HomePage() {
     pending: repositories.filter(r => r.analysis_status === 'pending').length
   }
 
-  const navItems = [
-    { href: '/', icon: Home, label: 'Dashboard', active: true },
-    { href: '/settings', icon: Settings, label: 'Settings', active: false },
-  ]
-
   return (
     <div className="flex h-screen" style={{ backgroundColor: 'var(--color-canvas)' }}>
       {/* Sidebar */}
-      <aside className="w-64 border-r" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-        <div className="flex h-full flex-col">
-          <div className="flex h-16 items-center justify-center border-b" style={{ borderColor: 'var(--color-border)' }}>
-            <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>Lookas</h1>
-          </div>
-          
-          <nav className="flex-1 space-y-1 p-4">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  item.active 
-                    ? 'bg-primary/10 text-primary' 
-                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-50'
-                }`}
-                style={item.active ? { 
-                  backgroundColor: 'var(--color-primary-bg)', 
-                  color: 'var(--color-primary)' 
-                } : {}}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="border-t p-4" style={{ borderColor: 'var(--color-border)' }}>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="h-8 w-8 rounded-full" style={{ backgroundColor: 'var(--color-border)' }} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate" style={{ color: 'var(--color-text-primary)' }}>
-                  {user?.email}
-                </p>
-              </div>
-              <ThemeToggle />
-            </div>
-            <Button variant="outline" size="sm" className="w-full" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign out
-            </Button>
-          </div>
-        </div>
-      </aside>
+      <Sidebar user={user} />
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto">
@@ -198,7 +144,7 @@ export default function HomePage() {
               />
             </div>
 
-            <Card className="max-w-2xl" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+            <Card className="max-w-2xl">
               <CardHeader>
                 <CardTitle>Connect Your GitHub Repositories</CardTitle>
                 <CardDescription>
@@ -252,7 +198,7 @@ export default function HomePage() {
 
             {/* Quick Stats */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-              <Card style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Repositories</CardTitle>
                   <GitBranch className="h-4 w-4" style={{ color: 'var(--color-text-secondary)' }} />
@@ -265,7 +211,7 @@ export default function HomePage() {
                 </CardContent>
               </Card>
 
-              <Card style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Documented</CardTitle>
                   <FileText className="h-4 w-4" style={{ color: 'var(--color-success)' }} />
@@ -278,7 +224,7 @@ export default function HomePage() {
                 </CardContent>
               </Card>
 
-              <Card style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Analyzing</CardTitle>
                   <TrendingUp className="h-4 w-4" style={{ color: 'var(--color-warning)' }} />
@@ -291,7 +237,7 @@ export default function HomePage() {
                 </CardContent>
               </Card>
 
-              <Card style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+              <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Pending Analysis</CardTitle>
                   <Clock className="h-4 w-4" style={{ color: 'var(--color-text-secondary)' }} />
@@ -320,7 +266,7 @@ export default function HomePage() {
               </div>
 
               {repositories.map((repo) => (
-                <Card key={repo.id} style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+                <Card key={repo.id}>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0">
                     <div className="flex-1">
                       <CardTitle className="text-lg">{repo.name}</CardTitle>
@@ -394,7 +340,7 @@ export default function HomePage() {
 
             {/* Recent Activity & Quick Actions */}
             <div className="grid gap-6 md:grid-cols-2">
-              <Card style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+              <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Recent Activity</CardTitle>
                   <CardDescription>Latest documentation updates and repository changes</CardDescription>
@@ -427,7 +373,7 @@ export default function HomePage() {
                 </CardContent>
               </Card>
 
-              <Card style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
+              <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Quick Actions</CardTitle>
                   <CardDescription>Common tasks and shortcuts</CardDescription>
