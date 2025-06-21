@@ -162,16 +162,14 @@ export default async function HomePage() {
                              </Button>
                            </Link>
                          )}
-                         <Button 
-                           size="sm"
-                           disabled={repo.analysis_status === 'analyzing'}
-                           onClick={() => {
-                             // TODO: Trigger analysis
-                             console.log('Starting analysis for', repo.name)
-                           }}
-                         >
-                           {repo.analysis_status === 'analyzing' ? 'Analyzing...' : 'EXPLAIN'}
-                         </Button>
+                         <Link href="/settings">
+                           <Button 
+                             size="sm"
+                             disabled={repo.analysis_status === 'analyzing'}
+                           >
+                             {repo.analysis_status === 'analyzing' ? 'Analyzing...' : 'EXPLAIN'}
+                           </Button>
+                         </Link>
                        </div>
                      </CardHeader>
                    </Card>
