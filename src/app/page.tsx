@@ -151,7 +151,7 @@ export default async function HomePage() {
                        </div>
                        <div className="flex gap-2">
                          {repo.analysis_status === 'completed' && (
-                           <Link href="/documentation">
+                           <Link href={`/repositories/${repo.id}/docs`}>
                              <Button variant="outline" size="sm">
                                View Docs
                              </Button>
