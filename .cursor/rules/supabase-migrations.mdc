@@ -1,0 +1,6 @@
+---
+description: Supabase migrations
+globs: 
+alwaysApply: false
+---
+Never EVER modify existing migrations. Use `pnpx supabase migration new` to create new migration files and `pnpx supabase db push` to apply them.
