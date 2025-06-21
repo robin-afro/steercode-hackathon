@@ -133,8 +133,26 @@ export default function RepositoryDocsPage() {
         
         if (!nodeMap.has(currentPath)) {
           const isLeaf = index === pathParts.length - 1
+          
+          // For leaf nodes (documents), use the actual document title
+          // For folder nodes, convert the path part to a readable name
+          let displayName = part
+          if (isLeaf) {
+            displayName = doc.title
+          } else {
+            // Convert snake_case/camelCase to Title Case for folder names
+            displayName = part
+              .replace(/([A-Z])/g, ' $1') // Add space before uppercase
+              .replace(/[_-]/g, ' ') // Replace underscores and hyphens with spaces
+              .replace(/\s+/g, ' ') // Normalize multiple spaces
+              .trim()
+              .split(' ')
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+              .join(' ')
+          }
+          
           const node: DocumentNode = {
-            name: part,
+            name: displayName,
             path: currentPath,
             type: isLeaf ? 'document' : 'folder',
             document: isLeaf ? doc : undefined,
