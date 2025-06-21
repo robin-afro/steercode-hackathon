@@ -1,1 +1,0 @@
-# steercode-hackathon
